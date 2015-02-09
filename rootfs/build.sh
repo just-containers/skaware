@@ -10,6 +10,7 @@ musl_version=1.0.4
 skalibs_version=2.2.1.0
 execline_version=2.0.2.0
 s6_version=2.1.0.1
+s6_portable_utils_version=2.0.0.1
 
 # point to make
 MAKE_4x=/usr/local/bin/make
@@ -106,6 +107,28 @@ tar                                                    \
   -C $HOME/dist/s6                                     \
   ./
 
+# install s6-portable-utils
+cd /build
+curl -R -L -O http://skarnet.org/software/s6-portable-utils/s6-portable-utils-${s6_portable_utils_version}.tar.gz
+tar xf s6-portable-utils-${s6_portable_utils_version}.tar.gz
+cd s6-portable-utils-${s6_portable_utils_version}
+
+CC="musl-gcc -static"                              \
+  ./configure                                      \
+    --prefix=$HOME/usr                             \
+    --exec-prefix=$HOME/dist/s6-portable-utils/usr \
+    --with-include=$HOME/usr/include               \
+    --with-lib=$HOME/usr/lib/skalibs               \
+    --disable-shared
+${MAKE_4x}
+${MAKE_4x} install
+
+tar                                                                                  \
+  -zcvf $HOME/dist/s6-portable-utils-${s6_portable_utils_version}-linux-amd64.tar.gz \
+  -C $HOME/dist/s6-portable-utils                                                    \
+  ./
+
 # copy results
 cp $HOME/dist/execline-${execline_version}-linux-amd64.tar.gz /dist
 cp $HOME/dist/s6-${s6_version}-linux-amd64.tar.gz /dist
+cp $HOME/dist/s6-portable-utils-${s6_portable_utils_version}-linux-amd64.tar.gz /dist
