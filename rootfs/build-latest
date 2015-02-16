@@ -86,8 +86,6 @@ tar                                                                \
   -C $HOME/dist/execline                                           \
   ./
 
-tar -zcvf $HOME/dist/execline-${execline_version}-linux-amd64.tar.gz $HOME/dist/execline
-
 # install s6
 cd /build
 curl -R -L -O http://www.skarnet.org/software/s6/s6-${s6_version}.tar.gz
