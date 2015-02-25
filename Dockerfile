@@ -11,8 +11,10 @@ RUN mkdir -p /build && \
     mkdir -p /dist
 
 COPY rootfs /
-RUN chmod +x /build-latest     \
-             /build-latest-git
+RUN chmod +x /build-latest       \
+             /build-latest-git   \
+             /install-latest     \
+             /install-latest-git
 
 VOLUME "/dist"
 
