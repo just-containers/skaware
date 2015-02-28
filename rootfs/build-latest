@@ -48,7 +48,7 @@ ${MAKE_4x} install
 
 # install skalibs
 cd /build
-curl -R -L -O http://skarnet.org/software/skalibs/skalibs-${skalibs_version}.tar.gz
+curl -R -L https://github.com/skarnet/skalibs/archive/v${skalibs_version}.tar.gz -o skalibs-${skalibs_version}.tar.gz
 tar xf skalibs-${skalibs_version}.tar.gz
 cd skalibs-${skalibs_version}
 
@@ -66,7 +66,7 @@ ${MAKE_4x} install
 
 # install execline
 cd /build
-curl -R -L -O http://skarnet.org/software/execline/execline-${execline_version}.tar.gz
+curl -R -L https://github.com/skarnet/execline/archive/v${execline_version}.tar.gz -o execline-${execline_version}.tar.gz
 tar xf execline-${execline_version}.tar.gz
 cd execline-${execline_version}
 
@@ -88,7 +88,7 @@ tar                                                                \
 
 # install s6
 cd /build
-curl -R -L -O http://www.skarnet.org/software/s6/s6-${s6_version}.tar.gz
+curl -R -L https://github.com/skarnet/s6/archive/v${s6_version}.tar.gz -o s6-${s6_version}.tar.gz
 tar xf s6-${s6_version}.tar.gz
 cd s6-${s6_version}
 
@@ -114,7 +114,7 @@ tar                                                    \
 
 # install s6-portable-utils
 cd /build
-curl -R -L -O http://skarnet.org/software/s6-portable-utils/s6-portable-utils-${s6_portable_utils_version}.tar.gz
+curl -R -L https://github.com/skarnet/s6-portable-utils/archive/v${s6_portable_utils_version}.tar.gz -o s6-portable-utils-${s6_portable_utils_version}.tar.gz
 tar xf s6-portable-utils-${s6_portable_utils_version}.tar.gz
 cd s6-portable-utils-${s6_portable_utils_version}
 

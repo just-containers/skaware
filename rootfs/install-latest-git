@@ -44,7 +44,7 @@ make install
 
 # install skalibs
 cd /build
-git clone git://git.skarnet.org/skalibs
+git clone https://github.com/skarnet/skalibs.git
 cd skalibs
 
 CC="musl-gcc -static"     \
@@ -56,7 +56,7 @@ ${MAKE_4x} install
 
 # install execline
 cd /build
-git clone git://git.skarnet.org/execline
+git clone https://github.com/skarnet/execline.git
 cd execline
 
 CC="musl-gcc -static"            \
@@ -69,7 +69,7 @@ ${MAKE_4x} install
 
 # install s6
 cd /build
-git clone git://git.skarnet.org/s6
+git clone https://github.com/skarnet/s6.git
 cd s6
 
 CC="musl-gcc -static"             \
@@ -83,7 +83,7 @@ ${MAKE_4x} install
 
 # install s6-portable-utils
 cd /build
-git clone git://git.skarnet.org/s6-portable-utils
+git clone https://github.com/skarnet/s6-portable-utils.git
 cd s6-portable-utils
 
 CC="musl-gcc -static"            \
