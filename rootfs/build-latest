@@ -154,7 +154,7 @@ for package in "${skarnet_packages[@]}"; do
 done
 
 # generate release.md
-echo "Built using make-${versions[skalibs]}, musl-${versions[musl]} and linux-headers-(${versions[linux]}" >> /dist/release.md
+echo "Built using make-${versions[make]}, musl-${versions[musl]} and linux-headers-${versions[linux]}" >> /dist/release.md
 echo "| Software | Version |" >> /dist/release.md
 echo "| -------- |:-------:|" >> /dist/release.md
 for package in "${skarnet_packages[@]}"
