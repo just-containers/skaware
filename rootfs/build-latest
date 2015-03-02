@@ -82,6 +82,7 @@ build_install_skarnet_package() {
     ${MAKE_4x}
     ${MAKE_4x} DESTDIR="/opt/${package}" install
 }
+
 tar_skarnet_package() {
     local package=$1
     if [[ -d "/opt/${package}/usr/bin" ]]; then
@@ -107,7 +108,10 @@ tar_skarnet_package() {
 }
 
 # create build dir
-mkdir -p /build
+mkdir -p /build /dist
+
+# remove previous dist files 
+rm -fr /dist/*
 
 # install make
 cd /build
@@ -143,10 +147,17 @@ for i in /patches/linux/*.patch; do
 done
 make headers_install ARCH="$(uname -m)" INSTALL_HDR_PATH="/opt/linux-headers" CC="musl-gcc"
 
-
 # install skarnet packages
 for package in "${skarnet_packages[@]}"; do
     build_install_skarnet_package ${package}
     tar_skarnet_package ${package}
 done
 
+# generate release.md
+echo "Built using make-${versions[skalibs]}, musl-${versions[musl]} and linux-headers-(${versions[linux]}" >> /dist/release.md
+echo "| Software | Version |" >> /dist/release.md
+echo "| -------- |:-------:|" >> /dist/release.md
+for package in "${skarnet_packages[@]}"
+do
+  echo "| ${package} | ${versions[${package}]} |" >> /dist/release.md
+done
