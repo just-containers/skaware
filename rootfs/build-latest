@@ -159,3 +159,10 @@ for package in "${skarnet_packages[@]}"
 do
   echo "| ${package} | ${versions[${package}]} |" >> /dist/release.md
 done
+
+# generate manifest.txt
+for package in "${skarnet_packages[@]}"
+do
+  echo "${package}=${versions[${package}]}" >> /dist/manifest.txt
+done
+echo "" >> /dist/manifest.txt
