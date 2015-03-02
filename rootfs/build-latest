@@ -110,9 +110,6 @@ tar_skarnet_package() {
 # create build dir
 mkdir -p /build /dist
 
-# remove previous dist files 
-rm -fr /dist/*
-
 # install make
 cd /build
 curl -R -L -O http://ftp.gnu.org/gnu/make/make-${versions[make]}.tar.gz
