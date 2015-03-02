@@ -2,31 +2,118 @@
 set -e
 set -x
 
-# make version (for skarnet)
-make_version=4.1
-
-# skarnet versions
-musl_version=1.0.4
-skalibs_version=2.3.1.0
-execline_version=2.1.0.0
-s6_version=2.1.1.2
-s6_portable_utils_version=2.0.0.1
-
 # point to make
 MAKE_4x=/usr/local/bin/make
 
-# configures /dev/random in order to disable hangs
-rm /dev/random
-mknod /dev/random c 1 9
+skarnet_packages=(
+skalibs
+execline
+s6
+s6-portable-utils
+s6-linux-utils
+s6-dns
+s6-networking
+)
+
+# software versions
+declare -A versions
+versions[make]=4.1
+versions[linux]=3.18.5
+versions[musl]=1.0.4
+versions[skalibs]=2.3.1.0
+versions[execline]=2.1.0.0
+versions[s6]=2.1.1.2
+versions[s6-portable-utils]=2.0.0.1
+versions[s6-linux-utils]=2.0.1.0
+versions[s6-dns]=2.0.0.2
+versions[s6-networking]=2.1.0.0
+
+declare -A includes
+includes[skalibs]="--with-include=/usr/musl/include"
+includes[execline]="--with-include=/opt/skalibs/usr/include ${includes[skalibs]}"
+includes[s6]="--with-include=/opt/execline/usr/include ${includes[execline]}"
+includes[s6-portable-utils]="${includes[s6]}"
+includes[s6-linux-utils]="--with-include=/opt/linux-headers/include ${includes[s6]}"
+includes[s6-dns]="${includes[s6]}"
+includes[s6-networking]="--with-include=/opt/s6-dns/usr/include --with-include=/opt/s6/usr/include ${includes[s6]}"
+
+declare -A libs
+libs[skalibs]="--with-lib=/usr/musl/lib"
+libs[execline]="--with-lib=/opt/skalibs/usr/lib ${libs[skalibs]}"
+libs[s6]="--with-lib=/opt/execline/usr/lib ${libs[execline]}"
+libs[s6-portable-utils]="${libs[s6]}"
+libs[s6-linux-utils]="${libs[s6]}"
+libs[s6-dns]="${libs[s6]}"
+libs[s6-networking]="--with-lib=/opt/s6-dns/usr/lib --with-lib=/opt/s6/usr/lib ${libs[s6]}"
+
+declare -A sysdeps
+sysdeps[skalibs]=""
+sysdeps[execline]="--with-sysdeps=/opt/skalibs/usr/lib/skalibs/sysdeps"
+sysdeps[s6]="${sysdeps[execline]}"
+sysdeps[s6-portable-utils]="${sysdeps[execline]}"
+sysdeps[s6-linux-utils]="${sysdeps[execline]}"
+sysdeps[s6-dns]="${sysdeps[execline]}"
+sysdeps[s6-networking]="${sysdeps[execline]}"
+
+declare -A configopts
+configopts[skalibs]="--datadir=/etc --enable-force-devr"
+configopts[execline]=""
+configopts[s6]=""
+configopts[s6-portable-utils]=""
+configopts[s6-dns]=""
+configopts[s6-networking]=""
+
+build_install_skarnet_package() {
+    local package=$1
+    cd /build
+    curl -R -L -O "http://skarnet.org/software/${package}/${package}-${versions[$package]}.tar.gz"
+    tar xf "${package}-${versions[$package]}.tar.gz"
+    cd "${package}-${versions[$package]}"
+    CC="musl-gcc" ./configure \
+      --prefix=/usr \
+      --libdir=/usr/lib \
+      --enable-static \
+      --disable-shared \
+      --enable-static-libc \
+      ${includes[$package]} \
+      ${libs[$package]} \
+      ${sysdeps[$package]} \
+      ${configopts[$package]}
+    ${MAKE_4x}
+    ${MAKE_4x} DESTDIR="/opt/${package}" install
+}
+tar_skarnet_package() {
+    local package=$1
+    if [[ -d "/opt/${package}/usr/bin" ]]; then
+        find "/opt/${package}/usr/bin" -type f -exec strip {} \;
+    fi
+
+    tar -czf "/dist/${package}-${versions[$package]}-linux-amd64-bin.tar.gz" \
+      --exclude "usr/lib" \
+      --exclude "usr/include" \
+      -C "/opt/${package}" .
+
+    local dev_dirs=""
+    if [[ -d "/opt/${package}/usr/lib" ]]; then
+        dev_dirs="usr/lib"
+    fi
+    if [[ -d "/opt/${package}/usr/include" ]]; then
+        dev_dirs="${dev_dirs} usr/include"
+    fi
+    if [[ -n "${dev_dirs}" ]]; then
+        tar -czf "/dist/${package}-${versions[$package]}-linux-amd64-dev.tar.gz" \
+        -C "/opt/${package}" $dev_dirs
+    fi
+}
 
 # create build dir
 mkdir -p /build
 
 # install make
 cd /build
-curl -R -L -O http://ftp.gnu.org/gnu/make/make-${make_version}.tar.gz
-tar xf make-${make_version}.tar.gz
-cd make-${make_version}
+curl -R -L -O http://ftp.gnu.org/gnu/make/make-${versions[make]}.tar.gz
+tar xf make-${versions[make]}.tar.gz
+cd make-${versions[make]}
 
 ./configure
 make
@@ -34,9 +121,9 @@ make install
 
 # install musl
 cd /build
-curl -R -L -O http://www.musl-libc.org/releases/musl-${musl_version}.tar.gz
-tar xf musl-${musl_version}.tar.gz
-cd musl-${musl_version}
+curl -R -L -O http://www.musl-libc.org/releases/musl-${versions[musl]}.tar.gz
+tar xf musl-${versions[musl]}.tar.gz
+cd musl-${versions[musl]}
 
 CFLAGS="-fno-toplevel-reorder -fno-stack-protector" \
   ./configure                                       \
@@ -46,95 +133,20 @@ CFLAGS="-fno-toplevel-reorder -fno-stack-protector" \
 ${MAKE_4x}
 ${MAKE_4x} install
 
-# install skalibs
+# install linux-headers
 cd /build
-curl -R -L https://github.com/skarnet/skalibs/archive/v${skalibs_version}.tar.gz -o skalibs-${skalibs_version}.tar.gz
-tar xf skalibs-${skalibs_version}.tar.gz
-cd skalibs-${skalibs_version}
+curl -R -L -O http://www.kernel.org/pub/linux/kernel/v3.x/linux-${versions[linux]}.tar.xz
+tar xf linux-${versions[linux]}.tar.xz
+cd linux-${versions[linux]}
+for i in /patches/linux/*.patch; do
+    patch -p1 -i "${i}" || true
+done
+make headers_install ARCH="$(uname -m)" INSTALL_HDR_PATH="/opt/linux-headers" CC="musl-gcc"
 
-CC="musl-gcc -static"     \
-  ./configure             \
-    --prefix=$HOME/usr    \
-    --enable-static-libc  \
-    --disable-shared
 
-# replace SKALIBS_ETC to "/etc"
-sed -i '/.*SKALIBS_ETC.*/c\\#define SKALIBS_ETC \"\/etc\"' src/include/skalibs/config.h
+# install skarnet packages
+for package in "${skarnet_packages[@]}"; do
+    build_install_skarnet_package ${package}
+    tar_skarnet_package ${package}
+done
 
-${MAKE_4x}
-${MAKE_4x} install
-
-# install execline
-cd /build
-curl -R -L https://github.com/skarnet/execline/archive/v${execline_version}.tar.gz -o execline-${execline_version}.tar.gz
-tar xf execline-${execline_version}.tar.gz
-cd execline-${execline_version}
-
-CC="musl-gcc -static"                     \
-  ./configure                             \
-    --prefix=$HOME/usr                    \
-    --exec-prefix=$HOME/dist/execline/usr \
-    --with-include=$HOME/usr/include      \
-    --with-lib=$HOME/usr/lib/skalibs      \
-    --enable-static-libc                  \
-    --disable-shared
-${MAKE_4x}
-${MAKE_4x} install
-
-tar                                                                \
-  -zcvf $HOME/dist/execline-${execline_version}-linux-amd64.tar.gz \
-  -C $HOME/dist/execline                                           \
-  ./
-
-# install s6
-cd /build
-curl -R -L https://github.com/skarnet/s6/archive/v${s6_version}.tar.gz -o s6-${s6_version}.tar.gz
-tar xf s6-${s6_version}.tar.gz
-cd s6-${s6_version}
-
-CC="musl-gcc -static"                     \
-  ./configure                             \
-    --prefix=$HOME/usr                    \
-    --exec-prefix=$HOME/dist/s6/usr       \
-    --with-include=$HOME/usr/include      \
-    --with-lib=$HOME/usr/lib/skalibs      \
-    --with-lib=$HOME/usr/lib/execline     \
-    --enable-static-libc                  \
-    --disable-shared
-${MAKE_4x}
-${MAKE_4x} install
-
-mkdir -p $HOME/dist/s6/etc
-install -D -m644 $HOME/usr/etc/* $HOME/dist/s6/etc/
-
-tar                                                    \
-  -zcvf $HOME/dist/s6-${s6_version}-linux-amd64.tar.gz \
-  -C $HOME/dist/s6                                     \
-  ./
-
-# install s6-portable-utils
-cd /build
-curl -R -L https://github.com/skarnet/s6-portable-utils/archive/v${s6_portable_utils_version}.tar.gz -o s6-portable-utils-${s6_portable_utils_version}.tar.gz
-tar xf s6-portable-utils-${s6_portable_utils_version}.tar.gz
-cd s6-portable-utils-${s6_portable_utils_version}
-
-CC="musl-gcc -static"                              \
-  ./configure                                      \
-    --prefix=$HOME/usr                             \
-    --exec-prefix=$HOME/dist/s6-portable-utils/usr \
-    --with-include=$HOME/usr/include               \
-    --with-lib=$HOME/usr/lib/skalibs               \
-    --enable-static-libc                           \
-    --disable-shared
-${MAKE_4x}
-${MAKE_4x} install
-
-tar                                                                                  \
-  -zcvf $HOME/dist/s6-portable-utils-${s6_portable_utils_version}-linux-amd64.tar.gz \
-  -C $HOME/dist/s6-portable-utils                                                    \
-  ./
-
-# copy results
-cp $HOME/dist/execline-${execline_version}-linux-amd64.tar.gz /dist
-cp $HOME/dist/s6-${s6_version}-linux-amd64.tar.gz /dist
-cp $HOME/dist/s6-portable-utils-${s6_portable_utils_version}-linux-amd64.tar.gz /dist
