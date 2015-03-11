@@ -5,19 +5,15 @@ ENV LC_ALL C
 ENV DEBIAN_FRONTEND noninteractive
 
 RUN apt-get update && \
-    apt-get -y install git curl build-essential 
+    apt-get -y install git curl build-essential && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-RUN mkdir -p /build && \
-    mkdir -p /dist
+COPY skarnet-builder /skarnet-builder
 
-COPY rootfs /
-RUN chmod +x /build-latest       \
-             /build-latest-git   \
-             /install-latest     \
-             /install-latest-git
+RUN chown -R nobody:nogroup /skarnet-builder
 
-VOLUME /dist
+USER nobody
+ENV HOME /skarnet-builder
+WORKDIR /skarnet-builder
 
-RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-CMD ["/build-wrapper"]
+CMD ["/skarnet-builder/build-wrapper"]
