@@ -1,3 +1,5 @@
+# skaware [![Build Status](https://travis-ci.org/just-containers/skaware-builder.svg)](https://travis-ci.org/just-containers/skaware-builder)
+
 ```
 mkdir dist
 chmod o+rw dist
