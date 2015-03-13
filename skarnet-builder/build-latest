@@ -2,8 +2,15 @@
 set -e
 set -x
 
+BUILDDIR=$HOME/build
+PACKAGEDIR=$HOME/pkg
+DISTDIR=$HOME/dist
+PATCHDIR="$(pwd)/patches"
+
+mkdir -p "$BUILDDIR" "$PACKAGEDIR" "$DISTDIR"
+
 # point to make
-MAKE_4x=/usr/local/bin/make
+MAKE_4x="$PACKAGEDIR/make/bin/make"
 
 # all packages
 skarnet_all_packages=(
@@ -41,26 +48,26 @@ versions[s6-dns]=2.0.0.2
 versions[s6-networking]=2.1.0.0
 
 declare -A includes
-includes[skalibs]="--with-include=/usr/musl/include"
-includes[execline]="--with-include=/opt/skalibs/usr/include ${includes[skalibs]}"
-includes[s6]="--with-include=/opt/execline/usr/include ${includes[execline]}"
+includes[skalibs]="--with-include=$PACKAGEDIR/musl/include"
+includes[execline]="--with-include=$PACKAGEDIR/skalibs/usr/include ${includes[skalibs]}"
+includes[s6]="--with-include=$PACKAGEDIR/execline/usr/include ${includes[execline]}"
 includes[s6-portable-utils]="${includes[s6]}"
-includes[s6-linux-utils]="--with-include=/opt/linux-headers/include ${includes[s6]}"
+includes[s6-linux-utils]="--with-include=$PACKAGEDIR/linux-headers/include ${includes[s6]}"
 includes[s6-dns]="${includes[s6]}"
-includes[s6-networking]="--with-include=/opt/s6-dns/usr/include --with-include=/opt/s6/usr/include ${includes[s6]}"
+includes[s6-networking]="--with-include=$PACKAGEDIR/s6-dns/usr/include --with-include=$PACKAGEDIR/s6/usr/include ${includes[s6]}"
 
 declare -A libs
 libs[skalibs]="--with-lib=/usr/musl/lib"
-libs[execline]="--with-lib=/opt/skalibs/usr/lib ${libs[skalibs]}"
-libs[s6]="--with-lib=/opt/execline/usr/lib ${libs[execline]}"
+libs[execline]="--with-lib=$PACKAGEDIR/skalibs/usr/lib ${libs[skalibs]}"
+libs[s6]="--with-lib=$PACKAGEDIR/execline/usr/lib ${libs[execline]}"
 libs[s6-portable-utils]="${libs[s6]}"
 libs[s6-linux-utils]="${libs[s6]}"
 libs[s6-dns]="${libs[s6]}"
-libs[s6-networking]="--with-lib=/opt/s6-dns/usr/lib --with-lib=/opt/s6/usr/lib ${libs[s6]}"
+libs[s6-networking]="--with-lib=$PACKAGEDIR/s6-dns/usr/lib --with-lib=$PACKAGEDIR/s6/usr/lib ${libs[s6]}"
 
 declare -A sysdeps
 sysdeps[skalibs]=""
-sysdeps[execline]="--with-sysdeps=/opt/skalibs/usr/lib/skalibs/sysdeps"
+sysdeps[execline]="--with-sysdeps=$PACKAGEDIR/skalibs/usr/lib/skalibs/sysdeps"
 sysdeps[s6]="${sysdeps[execline]}"
 sysdeps[s6-portable-utils]="${sysdeps[execline]}"
 sysdeps[s6-linux-utils]="${sysdeps[execline]}"
@@ -82,11 +89,11 @@ manifests[skarnet_portable_packages]="manifest-portable.txt"
 
 build_install_skarnet_package() {
     local package=$1
-    cd /build
-    curl -R -L -O "http://skarnet.org/software/${package}/${package}-${versions[$package]}.tar.gz"
+    cd "$BUILDDIR"
+    curl -R -L -O -C - "http://skarnet.org/software/${package}/${package}-${versions[$package]}.tar.gz"
     tar xf "${package}-${versions[$package]}.tar.gz"
     cd "${package}-${versions[$package]}"
-    CC="musl-gcc" ./configure \
+    CC="$PACKAGEDIR/musl/bin/musl-gcc" ./configure \
       --prefix=/usr \
       --libdir=/usr/lib \
       --enable-static \
@@ -97,69 +104,69 @@ build_install_skarnet_package() {
       ${sysdeps[$package]} \
       ${configopts[$package]}
     ${MAKE_4x}
-    ${MAKE_4x} DESTDIR="/opt/${package}" install
+    ${MAKE_4x} DESTDIR="$PACKAGEDIR/${package}" install
 }
 
 tar_skarnet_package() {
     local package=$1
-    if [[ -d "/opt/${package}/usr/bin" ]]; then
-        find "/opt/${package}/usr/bin" -type f -exec strip {} \;
+    if [[ -d "$PACKAGEDIR/${package}/usr/bin" ]]; then
+        find "$PACKAGEDIR/${package}/usr/bin" -type f -exec strip {} \;
     fi
 
-    tar -czf "/dist/${package}-${versions[$package]}-linux-amd64-bin.tar.gz" \
+    tar -czf "$DISTDIR/${package}-${versions[$package]}-linux-amd64-bin.tar.gz" \
+      --owner 0 \
+      --group 0 \
       --exclude "usr/lib" \
       --exclude "usr/include" \
-      -C "/opt/${package}" .
+      -C "$PACKAGEDIR/${package}" .
 
     local dev_dirs=""
-    if [[ -d "/opt/${package}/usr/lib" ]]; then
+    if [[ -d "$PACKAGEDIR/${package}/usr/lib" ]]; then
         dev_dirs="usr/lib"
     fi
-    if [[ -d "/opt/${package}/usr/include" ]]; then
+    if [[ -d "$PACKAGEDIR/${package}/usr/include" ]]; then
         dev_dirs="${dev_dirs} usr/include"
     fi
     if [[ -n "${dev_dirs}" ]]; then
-        tar -czf "/dist/${package}-${versions[$package]}-linux-amd64-dev.tar.gz" \
-        -C "/opt/${package}" $dev_dirs
+        tar -czf "$DISTDIR/${package}-${versions[$package]}-linux-amd64-dev.tar.gz" \
+          --owner 0 \
+          --group 0 \
+        -C "$PACKAGEDIR/${package}" $dev_dirs
     fi
 }
 
-# create build dir
-mkdir -p /build /dist
-
 # install make
-cd /build
+cd "$BUILDDIR"
 curl -R -L -O http://ftp.gnu.org/gnu/make/make-${versions[make]}.tar.gz
 tar xf make-${versions[make]}.tar.gz
 cd make-${versions[make]}
 
-./configure
+./configure --prefix="$PACKAGEDIR/make"
 make
 make install
 
 # install musl
-cd /build
+cd "$BUILDDIR"
 curl -R -L -O http://www.musl-libc.org/releases/musl-${versions[musl]}.tar.gz
 tar xf musl-${versions[musl]}.tar.gz
 cd musl-${versions[musl]}
 
 CFLAGS="-fno-toplevel-reorder -fno-stack-protector" \
   ./configure                                       \
-    --prefix=/usr/musl                              \
-    --exec-prefix=/usr                              \
+    --prefix=$PACKAGEDIR/musl                       \
     --disable-shared
 ${MAKE_4x}
 ${MAKE_4x} install
 
 # install linux-headers
-cd /build
-curl -R -L -O http://www.kernel.org/pub/linux/kernel/v3.x/linux-${versions[linux]}.tar.xz
+cd "$BUILDDIR"
+curl -R -L -O -C - http://www.kernel.org/pub/linux/kernel/v3.x/linux-${versions[linux]}.tar.xz
 tar xf linux-${versions[linux]}.tar.xz
 cd linux-${versions[linux]}
-for i in /patches/linux/*.patch; do
+for i in $PATCHDIR/linux/*.patch; do
     patch -p1 -i "${i}" || true
 done
-make headers_install ARCH="$(uname -m)" INSTALL_HDR_PATH="/opt/linux-headers" CC="musl-gcc"
+make headers_install ARCH="$(uname -m)" INSTALL_HDR_PATH="$PACKAGEDIR/linux-headers" CC="$PACKAGEDIR/musl/bin/musl-gcc"
 
 # install skarnet packages
 for package in "${skarnet_all_packages[@]}"; do
@@ -168,17 +175,17 @@ for package in "${skarnet_all_packages[@]}"; do
 done
 
 # generate release.md
-echo "Built using \`make-${versions[make]}\`, \`musl-${versions[musl]}\` and \`linux-headers-${versions[linux]}\`" >> /dist/release.md
-echo "" >> /dist/release.md
-echo "| Software | Version |" >> /dist/release.md
-echo "| -------- |:-------:|" >> /dist/release.md
+echo "Built using \`make-${versions[make]}\`, \`musl-${versions[musl]}\` and \`linux-headers-${versions[linux]}\`" >> $DISTDIR/release.md
+echo "" >> $DISTDIR/release.md
+echo "| Software | Version |" >> $DISTDIR/release.md
+echo "| -------- |:-------:|" >> $DISTDIR/release.md
 for package in "${skarnet_all_packages[@]}"; do
-  echo "| ${package} | ${versions[${package}]} |" >> /dist/release.md
+  echo "| ${package} | ${versions[${package}]} |" >> $DISTDIR/release.md
 done
 
 # generate manifests
 for i in "${!manifests[@]}"; do
-  file="/dist/${manifests[${i}]}"
+  file="$DISTDIR/${manifests[${i}]}"
   packages="$i[@]"
   for package in "${!packages}"; do
     echo "${package}=${versions[${package}]}" >> $file

@@ -1,0 +1,16 @@
+sudo: false
+language: c
+compiler: gcc
+script:
+- cd skarnet-builder && ./build-wrapper
+deploy:
+  provider: releases
+  skip_cleanup: true
+  api_key:
+    secure: Bw2bkD5EfXgAtodU47f85kHSQejKKpUKPGbm5ZkdWU564jV3yqYW4tJYvxMVl2rcTE9KW867N7Op4gg9l2xTGnK1h+iiqmeez3b8PKWc1d+LrB4MyGnO/SC6OX/Rz/jiwJaK2frKCmSQkv+Furp4GM2E2UNB5gKjnUxrfUtc1+s=
+  file: $HOME/dist/*
+  file_glob: true
+  on:
+    repo: just-containers/skaware-builder
+    branch: master
+    tags: true
