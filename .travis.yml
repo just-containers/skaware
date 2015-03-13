@@ -9,6 +9,9 @@ deploy:
   api_key:
     secure: Bw2bkD5EfXgAtodU47f85kHSQejKKpUKPGbm5ZkdWU564jV3yqYW4tJYvxMVl2rcTE9KW867N7Op4gg9l2xTGnK1h+iiqmeez3b8PKWc1d+LrB4MyGnO/SC6OX/Rz/jiwJaK2frKCmSQkv+Furp4GM2E2UNB5gKjnUxrfUtc1+s=
   file: $HOME/dist/*
+  file:
+    - $HOME/dist/manifest*.txt
+    - $HOME/dist/*.tar.gz
   file_glob: true
   on:
     repo: just-containers/skaware-builder
