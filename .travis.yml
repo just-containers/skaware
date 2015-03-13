@@ -7,7 +7,7 @@ deploy:
   provider: releases
   skip_cleanup: true
   api_key:
-    secure: Bw2bkD5EfXgAtodU47f85kHSQejKKpUKPGbm5ZkdWU564jV3yqYW4tJYvxMVl2rcTE9KW867N7Op4gg9l2xTGnK1h+iiqmeez3b8PKWc1d+LrB4MyGnO/SC6OX/Rz/jiwJaK2frKCmSQkv+Furp4GM2E2UNB5gKjnUxrfUtc1+s=
+    secure: "XX12PnEbC96mR/TFOGFlnpN6XhMhBzcdotBg1rfL1fUI2qCFKNxPf73583iMep9XXViIoJ0p2JUuK/GOm3oK02zWblruAJFCNI572X4BKZ/IaXpkCS90DWAQB5EkDFeF9XVdk3/00inFbhkWFB8q5xQNXECgQPXNSbz65kxGxjw="
   file: $HOME/dist/*
   file:
     - $HOME/dist/manifest*.txt
