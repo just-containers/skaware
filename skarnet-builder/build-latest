@@ -38,7 +38,7 @@ s6-portable-utils
 declare -A versions
 versions[make]=4.1
 versions[linux]=3.18.5
-versions[musl]=1.0.4
+versions[musl]=1.0.5
 versions[skalibs]=2.3.3.0
 versions[execline]=2.1.1.1
 versions[s6]=2.1.3.0
