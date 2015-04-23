@@ -1,4 +1,4 @@
-# skaware [![Build Status](https://travis-ci.org/just-containers/skaware-builder.svg)](https://travis-ci.org/just-containers/skaware-builder)
+# skaware [![Build Status](https://travis-ci.org/just-containers/skaware.svg)](https://travis-ci.org/just-containers/skaware)
 
 ```
 mkdir dist
