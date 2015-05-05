@@ -14,6 +14,6 @@ deploy:
     - $HOME/dist/*.tar.gz
   file_glob: true
   on:
-    repo: just-containers/skaware-builder
+    repo: just-containers/skaware
     branch: master
     tags: true
