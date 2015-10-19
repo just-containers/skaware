@@ -1,19 +1,8 @@
-sudo: false
 language: c
 compiler: gcc
+install:
+- bash -e ${TRAVIS_BUILD_DIR}/.travis.yml.install
 script:
-- cd skarnet-builder && ./build-wrapper
-deploy:
-  provider: releases
-  skip_cleanup: true
-  api_key:
-    secure: "QNiQi8CpOEorAm1CAJjl18A+RCNjUhabH3anL6LeOynY1ggrgSGR2MbJsgWaE7Zc98PlMc5JlJrXuKbwGR5fw6ox42gCriuELwHOj9rpmGIimgVIx5tWBeOzSF+iWSB5xwYnL49xvsYynlHdfKtJ5k3BHxCNUcDWFUZKdzg5Mhk="
-  file: $HOME/dist/*
-  file:
-    - $HOME/dist/manifest*.txt
-    - $HOME/dist/*.tar.gz
-  file_glob: true
-  on:
-    repo: just-containers/skaware
-    branch: master
-    tags: true
+- bash -e ${TRAVIS_BUILD_DIR}/.travis.yml.script
+after_success:
+- bash -e ${TRAVIS_BUILD_DIR}/.travis.yml.after_success
