@@ -184,13 +184,13 @@ done
 # generate release.md
 releasemsg=""
 releasemsg+="Built using \`make-${versions[make]}\`, \`musl-${versions[musl]}\` and \`linux-headers-${versions[linux]}\`\n"
-releasemsg+="\`\`\`\n"
+releasemsg+="\n"
 releasemsg+="| Software | Version |\n"
 releasemsg+="| -------- |:-------:|\n"
 for package in "${skarnet_all_packages[@]}"; do
   releasemsg+="| ${package} | ${versions[${package}]} |\n"
 done
-releasemsg+="\`\`\`"
+releasemsg+="\n"
 echo -e ${releasemsg} > $DISTDIR/release.md
 
 # generate manifests
