@@ -89,10 +89,17 @@ manifests[skarnet_portable_packages]="manifest-portable.txt"
 
 build_install_skarnet_package() {
     local package=$1
+    local version=${versions[$package]}
+
     cd "$BUILDDIR"
-    curl -R -L -O -C - "http://skarnet.org/software/${package}/${package}-${versions[$package]}.tar.gz"
-    tar xf "${package}-${versions[$package]}.tar.gz"
-    cd "${package}-${versions[$package]}"
+
+    git clone git://git.skarnet.org/${package}
+    cd ${package}
+    if [[ ${version} =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+      version=$(git rev-list -n 1 v${version})
+    fi
+    git reset --hard ${version}
+    
     CC="$PACKAGEDIR/musl/bin/musl-gcc" ./configure \
       --prefix=/usr \
       --libdir=/usr/lib \
@@ -175,20 +182,23 @@ for package in "${skarnet_all_packages[@]}"; do
 done
 
 # generate release.md
-echo "Built using \`make-${versions[make]}\`, \`musl-${versions[musl]}\` and \`linux-headers-${versions[linux]}\`" >> $DISTDIR/release.md
-echo "" >> $DISTDIR/release.md
-echo "| Software | Version |" >> $DISTDIR/release.md
-echo "| -------- |:-------:|" >> $DISTDIR/release.md
+releasemsg=""
+releasemsg+="Built using \`make-${versions[make]}\`, \`musl-${versions[musl]}\` and \`linux-headers-${versions[linux]}\`\n"
+releasemsg+="\n"
+releasemsg+="| Software | Version |\n"
+releasemsg+="| -------- |:-------:|\n"
 for package in "${skarnet_all_packages[@]}"; do
-  echo "| ${package} | ${versions[${package}]} |" >> $DISTDIR/release.md
+  releasemsg+="| ${package} | ${versions[${package}]} |\n"
 done
+echo ${releasemsg} > $DISTDIR/release.md
 
 # generate manifests
 for i in "${!manifests[@]}"; do
   file="$DISTDIR/${manifests[${i}]}"
+  manifest=""
   packages="$i[@]"
   for package in "${!packages}"; do
-    echo "${package}=${versions[${package}]}" >> $file
+    manifest+="${package}=${versions[${package}]}\n"
   done
-  echo "" >> $file
+  echo ${manifest} > $file
 done
