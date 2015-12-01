@@ -39,9 +39,9 @@ declare -A versions
 versions[make]=4.1
 versions[linux]=3.18.5
 versions[musl]=1.0.5
-versions[skalibs]=2.3.8.0
-versions[execline]=2.1.4.2
-versions[s6]=2.2.2.0
+versions[skalibs]=2.3.8.3
+versions[execline]=2.1.4.5
+versions[s6]=2.2.4.0
 versions[s6-portable-utils]=2.0.5.3
 versions[s6-linux-utils]=2.0.2.3
 versions[s6-dns]=2.0.0.7
@@ -101,7 +101,6 @@ build_install_skarnet_package() {
     git reset --hard ${version}
     
     CC="$PACKAGEDIR/musl/bin/musl-gcc" ./configure \
-      --prefix=/usr \
       --libdir=/usr/lib \
       --enable-static \
       --disable-shared \
@@ -195,11 +194,10 @@ echo -e ${releasemsg} > $DISTDIR/release.md
 
 # generate manifests
 for i in "${!manifests[@]}"; do
-  file="$DISTDIR/${manifests[${i}]}"
   manifest=""
   packages="$i[@]"
   for package in "${!packages}"; do
     manifest+="${package}=${versions[${package}]}\n"
   done
-  echo -e ${manifest} > $file
+  echo -e ${manifest} > $DISTDIR/${manifests[${i}]}
 done
