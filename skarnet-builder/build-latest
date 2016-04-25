@@ -1,4 +1,4 @@
-#!/usr/bin/env bash 
+#!/usr/bin/env bash
 set -e
 set -x
 
@@ -21,6 +21,7 @@ s6-portable-utils
 s6-linux-utils
 s6-dns
 s6-networking
+s6-rc
 )
 
 # linux packages
@@ -32,22 +33,24 @@ skalibs
 execline
 s6
 s6-portable-utils
+s6-rc
 )
 
 # software versions
 declare -A versions
 versions[make]=4.1
 versions[linux]=3.18.5
-versions[musl]=1.0.5
-versions[skalibs]=2.3.8.3
-versions[execline]=2.1.4.5
-#versions[s6]=2.2.4.0
-versions[s6]=eeb0f9098450dbe470fc9b60627d15df62b04239
-#versions[s6-portable-utils]=2.0.5.3
-versions[s6-portable-utils]=0bdcd224dc63cf295e1e37e016231105f272922a
-versions[s6-linux-utils]=2.0.2.3
-versions[s6-dns]=2.0.0.7
-versions[s6-networking]=2.1.0.4
+versions[musl]=1.1.9
+versions[skalibs]=2.3.10.0
+versions[execline]=2.1.5.0
+versions[s6]=2.3.0.0
+#versions[s6]=eeb0f9098450dbe470fc9b60627d15df62b04239
+versions[s6-portable-utils]=2.0.6.0
+#versions[s6-portable-utils]=0bdcd224dc63cf295e1e37e016231105f272922a
+versions[s6-linux-utils]=2.1.0.0
+versions[s6-dns]=2.0.1.0
+versions[s6-networking]=2.1.1.0
+versions[s6-rc]=0.0.3.0
 
 declare -A includes
 includes[skalibs]="--with-include=$PACKAGEDIR/musl/include"
@@ -57,6 +60,7 @@ includes[s6-portable-utils]="${includes[s6]}"
 includes[s6-linux-utils]="--with-include=$PACKAGEDIR/linux-headers/include ${includes[s6]}"
 includes[s6-dns]="${includes[s6]}"
 includes[s6-networking]="--with-include=$PACKAGEDIR/s6-dns/usr/include --with-include=$PACKAGEDIR/s6/usr/include ${includes[s6]}"
+includes[s6-rc]="--with-include=$PACKAGEDIR/s6/usr/include ${includes[s6]}"
 
 declare -A libs
 libs[skalibs]="--with-lib=/usr/musl/lib"
@@ -66,6 +70,7 @@ libs[s6-portable-utils]="${libs[s6]}"
 libs[s6-linux-utils]="${libs[s6]}"
 libs[s6-dns]="${libs[s6]}"
 libs[s6-networking]="--with-lib=$PACKAGEDIR/s6-dns/usr/lib --with-lib=$PACKAGEDIR/s6/usr/lib ${libs[s6]}"
+libs[s6-rc]="--with-lib=$PACKAGEDIR/s6/usr/lib ${libs[s6]}"
 
 declare -A sysdeps
 sysdeps[skalibs]=""
@@ -75,6 +80,7 @@ sysdeps[s6-portable-utils]="${sysdeps[execline]}"
 sysdeps[s6-linux-utils]="${sysdeps[execline]}"
 sysdeps[s6-dns]="${sysdeps[execline]}"
 sysdeps[s6-networking]="${sysdeps[execline]}"
+sysdeps[s6-rc]="${sysdeps[execline]}"
 
 declare -A configopts
 configopts[skalibs]="--datadir=/etc --enable-force-devr"
@@ -83,6 +89,7 @@ configopts[s6]=""
 configopts[s6-portable-utils]=""
 configopts[s6-dns]=""
 configopts[s6-networking]=""
+configopts[s6-rc]=""
 
 declare -A manifests
 manifests[skarnet_all_packages]="manifest.txt"
@@ -101,7 +108,7 @@ build_install_skarnet_package() {
       version=$(git rev-list -n 1 v${version})
     fi
     git reset --hard ${version}
-    
+
     CC="$PACKAGEDIR/musl/bin/musl-gcc" ./configure \
       --libdir=/usr/lib \
       --enable-static \
