@@ -2,10 +2,14 @@
 set -e
 set -x
 
+MUSL_CROSS_MAKE_RELEASE=0
+MUSL_CROSS_MAKE_SRC="https://github.com/just-containers/musl-cross-make/releases/download/v${MUSL_CROSS_MAKE_RELEASE}"
+
 BUILDDIR=$HOME/build
 PACKAGEDIR=$HOME/pkg
 DISTDIR=$HOME/dist
 PATCHDIR="$(pwd)/patches"
+SYSDEPSDIR="$(pwd)/sysdeps"
 
 mkdir -p "$BUILDDIR" "$PACKAGEDIR" "$DISTDIR"
 
@@ -36,119 +40,40 @@ s6-portable-utils
 s6-rc
 )
 
+# target platforms + simplified
+# platform
+declare -A targets
+targets[arm-linux-musleabihf]=armhf
+targets[x86_64-linux-musl]=amd64
+
 # software versions
 declare -A versions
 versions[make]=4.1
-versions[linux]=3.18.5
-versions[musl]=1.1.14
 versions[skalibs]=2.3.10.0
 versions[execline]=2.1.5.0
 versions[s6]=2.3.0.0
-#versions[s6]=eeb0f9098450dbe470fc9b60627d15df62b04239
 versions[s6-portable-utils]=2.0.6.0
-#versions[s6-portable-utils]=0bdcd224dc63cf295e1e37e016231105f272922a
 versions[s6-linux-utils]=2.1.0.0
 versions[s6-dns]=2.0.1.0
 versions[s6-networking]=2.1.1.0
 versions[s6-rc]=0.0.3.0
-
-declare -A includes
-includes[skalibs]="--with-include=$PACKAGEDIR/musl/include"
-includes[execline]="--with-include=$PACKAGEDIR/skalibs/usr/include ${includes[skalibs]}"
-includes[s6]="--with-include=$PACKAGEDIR/execline/usr/include ${includes[execline]}"
-includes[s6-portable-utils]="${includes[s6]}"
-includes[s6-linux-utils]="--with-include=$PACKAGEDIR/linux-headers/include ${includes[s6]}"
-includes[s6-dns]="${includes[s6]}"
-includes[s6-networking]="--with-include=$PACKAGEDIR/s6-dns/usr/include --with-include=$PACKAGEDIR/s6/usr/include ${includes[s6]}"
-includes[s6-rc]="--with-include=$PACKAGEDIR/s6/usr/include ${includes[s6]}"
-
-declare -A libs
-libs[skalibs]="--with-lib=/usr/musl/lib"
-libs[execline]="--with-lib=$PACKAGEDIR/skalibs/usr/lib ${libs[skalibs]}"
-libs[s6]="--with-lib=$PACKAGEDIR/execline/usr/lib ${libs[execline]}"
-libs[s6-portable-utils]="${libs[s6]}"
-libs[s6-linux-utils]="${libs[s6]}"
-libs[s6-dns]="${libs[s6]}"
-libs[s6-networking]="--with-lib=$PACKAGEDIR/s6-dns/usr/lib --with-lib=$PACKAGEDIR/s6/usr/lib ${libs[s6]}"
-libs[s6-rc]="--with-lib=$PACKAGEDIR/s6/usr/lib ${libs[s6]}"
-
-declare -A sysdeps
-sysdeps[skalibs]=""
-sysdeps[execline]="--with-sysdeps=$PACKAGEDIR/skalibs/usr/lib/skalibs/sysdeps"
-sysdeps[s6]="${sysdeps[execline]}"
-sysdeps[s6-portable-utils]="${sysdeps[execline]}"
-sysdeps[s6-linux-utils]="${sysdeps[execline]}"
-sysdeps[s6-dns]="${sysdeps[execline]}"
-sysdeps[s6-networking]="${sysdeps[execline]}"
-sysdeps[s6-rc]="${sysdeps[execline]}"
-
-declare -A configopts
-configopts[skalibs]="--datadir=/etc --enable-force-devr"
-configopts[execline]=""
-configopts[s6]=""
-configopts[s6-portable-utils]=""
-configopts[s6-dns]=""
-configopts[s6-networking]=""
-configopts[s6-rc]=""
 
 declare -A manifests
 manifests[skarnet_all_packages]="manifest.txt"
 manifests[skarnet_linux_packages]="manifest-linux.txt"
 manifests[skarnet_portable_packages]="manifest-portable.txt"
 
-build_install_skarnet_package() {
-    local package=$1
-    local version=${versions[$package]}
+curl -R -L -o $BUILDDIR/musl-cross-make-manifest.txt "${MUSL_CROSS_MAKE_SRC}/manifest.txt"
 
-    cd "$BUILDDIR"
+while read -r line; do
+    key=$(echo "${line}" | cut -d"=" -f1)
+    value=$(echo "${line}" | cut -d"=" -f2)
+    case "${key}" in
+        linux|musl|gcc) versions[$key]=$value ;;
+    esac
+done < $BUILDDIR/musl-cross-make-manifest.txt
 
-    git clone https://github.com/skarnet/${package}.git
-    cd ${package}
-    if [[ ${version} =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-      version=$(git rev-list -n 1 v${version})
-    fi
-    git reset --hard ${version}
-
-    CC="$PACKAGEDIR/musl/bin/musl-gcc" ./configure \
-      --libdir=/usr/lib \
-      --enable-static \
-      --disable-shared \
-      --enable-static-libc \
-      ${includes[$package]} \
-      ${libs[$package]} \
-      ${sysdeps[$package]} \
-      ${configopts[$package]}
-    ${MAKE_4x}
-    ${MAKE_4x} DESTDIR="$PACKAGEDIR/${package}" install
-}
-
-tar_skarnet_package() {
-    local package=$1
-    if [[ -d "$PACKAGEDIR/${package}/usr/bin" ]]; then
-        find "$PACKAGEDIR/${package}/usr/bin" -type f -exec strip {} \;
-    fi
-
-    tar -czf "$DISTDIR/${package}-${versions[$package]}-linux-amd64-bin.tar.gz" \
-      --owner 0 \
-      --group 0 \
-      --exclude "usr/lib" \
-      --exclude "usr/include" \
-      -C "$PACKAGEDIR/${package}" .
-
-    local dev_dirs=""
-    if [[ -d "$PACKAGEDIR/${package}/usr/lib" ]]; then
-        dev_dirs="usr/lib"
-    fi
-    if [[ -d "$PACKAGEDIR/${package}/usr/include" ]]; then
-        dev_dirs="${dev_dirs} usr/include"
-    fi
-    if [[ -n "${dev_dirs}" ]]; then
-        tar -czf "$DISTDIR/${package}-${versions[$package]}-linux-amd64-dev.tar.gz" \
-          --owner 0 \
-          --group 0 \
-        -C "$PACKAGEDIR/${package}" $dev_dirs
-    fi
-}
+rm $BUILDDIR/musl-cross-make-manifest.txt
 
 # install make
 cd "$BUILDDIR"
@@ -160,33 +85,115 @@ cd make-${versions[make]}
 make
 make install
 
-# install musl
-cd "$BUILDDIR"
-curl -R -L -O http://www.musl-libc.org/releases/musl-${versions[musl]}.tar.gz
-tar xf musl-${versions[musl]}.tar.gz
-cd musl-${versions[musl]}
-
-CFLAGS="-fno-toplevel-reorder -fno-stack-protector" \
-  ./configure                                       \
-    --prefix=$PACKAGEDIR/musl                       \
-    --disable-shared
-${MAKE_4x}
-${MAKE_4x} install
-
-# install linux-headers
-cd "$BUILDDIR"
-curl -R -L -O -C - http://www.kernel.org/pub/linux/kernel/v3.x/linux-${versions[linux]}.tar.xz
-tar xf linux-${versions[linux]}.tar.xz
-cd linux-${versions[linux]}
-for i in $PATCHDIR/linux/*.patch; do
-    patch -p1 -i "${i}" || true
-done
-make headers_install ARCH="$(uname -m)" INSTALL_HDR_PATH="$PACKAGEDIR/linux-headers" CC="$PACKAGEDIR/musl/bin/musl-gcc"
-
-# install skarnet packages
-for package in "${skarnet_all_packages[@]}"; do
-    build_install_skarnet_package ${package}
-    tar_skarnet_package ${package}
+for target in "${!targets[@]}"; do
+    declare -A includes
+    includes[skalibs]=""
+    includes[execline]="--with-include=$PACKAGEDIR/skalibs-$target/usr/include ${includes[skalibs]}"
+    includes[s6]="--with-include=$PACKAGEDIR/execline-$target/usr/include ${includes[execline]}"
+    includes[s6-portable-utils]="${includes[s6]}"
+    includes[s6-linux-utils]="${includes[s6]}"
+    includes[s6-dns]="${includes[s6]}"
+    includes[s6-networking]="--with-include=$PACKAGEDIR/s6-dns-$target/usr/include --with-include=$PACKAGEDIR/s6-$target/usr/include ${includes[s6]}"
+    includes[s6-rc]="--with-include=$PACKAGEDIR/s6-$target/usr/include ${includes[s6]}"
+    
+    declare -A libs
+    libs[skalibs]=""
+    libs[execline]="--with-lib=$PACKAGEDIR/skalibs-$target/usr/lib ${libs[skalibs]}"
+    libs[s6]="--with-lib=$PACKAGEDIR/execline-$target/usr/lib ${libs[execline]}"
+    libs[s6-portable-utils]="${libs[s6]}"
+    libs[s6-linux-utils]="${libs[s6]}"
+    libs[s6-dns]="${libs[s6]}"
+    libs[s6-networking]="--with-lib=$PACKAGEDIR/s6-dns-$target/usr/lib --with-lib=$PACKAGEDIR/s6-${target}/usr/lib ${libs[s6]}"
+    libs[s6-rc]="--with-lib=$PACKAGEDIR/s6-$target/usr/lib ${libs[s6]}"
+    
+    declare -A sysdeps
+    sysdeps[skalibs]="--with-sysdeps=$SYSDEPSDIR/${target}"
+    sysdeps[execline]="--with-sysdeps=$PACKAGEDIR/skalibs-$target/usr/lib/skalibs/sysdeps"
+    sysdeps[s6]="${sysdeps[execline]}"
+    sysdeps[s6-portable-utils]="${sysdeps[execline]}"
+    sysdeps[s6-linux-utils]="${sysdeps[execline]}"
+    sysdeps[s6-dns]="${sysdeps[execline]}"
+    sysdeps[s6-networking]="${sysdeps[execline]}"
+    sysdeps[s6-rc]="${sysdeps[execline]}"
+    
+    declare -A configopts
+    configopts[skalibs]="--datadir=/etc --enable-force-devr"
+    configopts[execline]=""
+    configopts[s6]=""
+    configopts[s6-portable-utils]=""
+    configopts[s6-dns]=""
+    configopts[s6-networking]=""
+    configopts[s6-rc]=""
+    
+    
+    build_install_skarnet_package() {
+        local package=$1
+        local version=${versions[$package]}
+    
+        mkdir -p "$BUILDDIR/${target}"
+        cd "$BUILDDIR/${target}"
+    
+        git clone https://github.com/skarnet/${package}.git
+        cd ${package}
+        if [[ ${version} =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          version=$(git rev-list -n 1 v${version})
+        fi
+        git reset --hard ${version}
+    
+        PATH="$PACKAGEDIR/gcc-$target/bin:$PATH" \
+        ./configure \
+          --target="$target" \
+          --libdir=/usr/lib \
+          --enable-static \
+          --disable-shared \
+          --enable-static-libc \
+          ${includes[$package]} \
+          ${libs[$package]} \
+          ${sysdeps[$package]} \
+          ${configopts[$package]}
+        PATH="$PACKAGEDIR/gcc-$target/bin:$PATH" ${MAKE_4x}
+        PATH="$PACKAGEDIR/gcc-$target/bin:$PATH" ${MAKE_4x} DESTDIR="$PACKAGEDIR/${package}-${target}" install
+    }
+    
+    tar_skarnet_package() {
+        local package=$1
+        for bindir in 'usr/bin' 'bin' 'usr/sbin' 'sbin'; do
+            if [[ -d "$PACKAGEDIR/${package}-${target}/$bindir" ]]; then
+                PATH="$PACKAGEDIR/gcc-$target/bin:$PATH" find "$PACKAGEDIR/${package}-${target}/$bindir" -type f -exec ${target}-strip {} \;
+            fi
+        done
+    
+        tar -czf "$DISTDIR/${package}-${versions[$package]}-linux-${targets[$target]}-bin.tar.gz" \
+          --owner 0 \
+          --group 0 \
+          --exclude "usr/lib" \
+          --exclude "usr/include" \
+          -C "$PACKAGEDIR/${package}-${target}" .
+    
+        local dev_dirs=""
+        if [[ -d "$PACKAGEDIR/${package}-${target}/usr/lib" ]]; then
+            dev_dirs="usr/lib"
+        fi
+        if [[ -d "$PACKAGEDIR/${package}-${target}/usr/include" ]]; then
+            dev_dirs="${dev_dirs} usr/include"
+        fi
+        if [[ -n "${dev_dirs}" ]]; then
+            tar -czf "$DISTDIR/${package}-${versions[$package]}-linux-${targets[$target]}-dev.tar.gz" \
+              --owner 0 \
+              --group 0 \
+            -C "$PACKAGEDIR/${package}-${target}" $dev_dirs
+        fi
+    }
+    # get gcc
+    mkdir -p "$PACKAGEDIR/gcc-${target}"
+    curl -R -L -o "$PACKAGEDIR/gcc-${target}.tar.gz" "${MUSL_CROSS_MAKE_SRC}/gcc-${versions[gcc]}-${target}.tar.gz"
+    tar xf "$PACKAGEDIR/gcc-${target}.tar.gz" -C "$PACKAGEDIR/gcc-${target}"
+    
+    # install skarnet packages
+    for package in "${skarnet_all_packages[@]}"; do
+        build_install_skarnet_package ${package}
+        tar_skarnet_package ${package}
+    done
 done
 
 # generate release.md
