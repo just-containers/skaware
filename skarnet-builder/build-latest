@@ -44,6 +44,7 @@ s6-rc
 # platform
 declare -A targets
 targets[arm-linux-musleabihf]=armhf
+targets[aarch64-linux-musl]=aarch64
 targets[x86_64-linux-musl]=amd64
 targets[i486-linux-musl]=x86
 
