@@ -7,8 +7,20 @@ endianness: little
 sizeofushort: 2
 sizeofuint: 4
 sizeofulong: 8
+sizeofsize: 8
+signedsize: no
+sizeofuid: 4
+signeduid: no
 sizeofgid: 4
+signedgid: no
+sizeofpid: 4
+signedpid: yes
 sizeoftime: 8
+signedtime: yes
+sizeofdev: 8
+signeddev: no
+sizeofino: 8
+signedino: no
 accept4: yes
 ancilautoclose: no
 cmsgcloexec: yes
@@ -31,7 +43,7 @@ revoke: no
 sendfile: yes
 setgroups: yes
 settimeofday: yes
-signalfd: no
+signalfd: yes
 splice: yes
 strcasestr: yes
 strnlen: yes
@@ -39,5 +51,6 @@ uint64t: yes
 futimens: yes
 futimes: yes
 arc4random: no
-getrandom: no
+arc4random_addrandom: no
+getrandom: yes
 itimer: yes
