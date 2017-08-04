@@ -53,7 +53,7 @@ declare -A versions
 versions[make]=4.1
 versions[skalibs]=2.5.1.1
 versions[execline]=2.3.0.1
-versions[s6]=2.5.1.0
+versions[s6]=2.6.0.0
 versions[s6-portable-utils]=2.2.1.0
 versions[s6-linux-utils]=2.4.0.0
 versions[s6-dns]=2.2.0.0
