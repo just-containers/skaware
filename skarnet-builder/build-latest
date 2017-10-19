@@ -2,7 +2,7 @@
 set -e
 set -x
 
-MUSL_CROSS_MAKE_RELEASE=2
+MUSL_CROSS_MAKE_RELEASE=3
 MUSL_CROSS_MAKE_SRC="https://github.com/just-containers/musl-cross-make/releases/download/v${MUSL_CROSS_MAKE_RELEASE}"
 
 BUILDDIR=$HOME/build
