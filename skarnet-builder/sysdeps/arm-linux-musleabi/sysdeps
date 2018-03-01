@@ -1,4 +1,4 @@
-target: arm-linux-musleabihf
+target: arm-linux-musleabi
 clockrt: yes
 clockmon: yes
 posixspawn: yes

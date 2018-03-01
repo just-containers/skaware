@@ -2,7 +2,7 @@
 set -e
 set -x
 
-MUSL_CROSS_MAKE_RELEASE=5
+MUSL_CROSS_MAKE_RELEASE=8
 MUSL_CROSS_MAKE_SRC="https://github.com/just-containers/musl-cross-make/releases/download/v${MUSL_CROSS_MAKE_RELEASE}"
 
 BUILDDIR=$HOME/build
@@ -43,6 +43,7 @@ s6-rc
 # target platforms + simplified
 # platform
 declare -A targets
+targets[arm-linux-musleabi]=arm
 targets[arm-linux-musleabihf]=armhf
 targets[aarch64-linux-musl]=aarch64
 targets[x86_64-linux-musl]=amd64
@@ -65,7 +66,7 @@ manifests[skarnet_all_packages]="manifest.txt"
 manifests[skarnet_linux_packages]="manifest-linux.txt"
 manifests[skarnet_portable_packages]="manifest-portable.txt"
 
-curl -R -L -o $BUILDDIR/musl-cross-make-manifest.txt "${MUSL_CROSS_MAKE_SRC}/manifest.txt"
+curl -R -L -o $BUILDDIR/musl-cross-make-manifest.txt "${MUSL_CROSS_MAKE_SRC}/gcc-7.2.0-manifest.txt"
 
 while read -r line; do
     key=$(echo "${line}" | cut -d"=" -f1)
@@ -188,8 +189,8 @@ for target in "${!targets[@]}"; do
     }
     # get gcc
     mkdir -p "$PACKAGEDIR/gcc-${target}"
-    curl -R -L -o "$PACKAGEDIR/gcc-${target}.tar.gz" "${MUSL_CROSS_MAKE_SRC}/gcc-${versions[gcc]}-${target}.tar.gz"
-    tar xf "$PACKAGEDIR/gcc-${target}.tar.gz" -C "$PACKAGEDIR/gcc-${target}"
+    curl -R -L -o "$PACKAGEDIR/gcc-${target}.tar.xz" "${MUSL_CROSS_MAKE_SRC}/gcc-${versions[gcc]}-${target}.tar.xz"
+    tar xf "$PACKAGEDIR/gcc-${target}.tar.xz" -C "$PACKAGEDIR/gcc-${target}"
     
     # install skarnet packages
     for package in "${skarnet_all_packages[@]}"; do

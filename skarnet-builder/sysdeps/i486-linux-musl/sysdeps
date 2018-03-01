@@ -17,14 +17,15 @@ sizeofpid: 4
 signedpid: yes
 sizeoftime: 4
 signedtime: yes
-sizeofdev: 4
+sizeofdev: 8
 signeddev: no
-sizeofino: 4
+sizeofino: 8
 signedino: no
 accept4: yes
 ancilautoclose: no
 cmsgcloexec: yes
 devurandom: yes
+dirfd: yes
 eproto: yes
 eventfd: yes
 flock: yes
@@ -35,8 +36,10 @@ ipv6: yes
 malloc0: yes
 msgdontwait: yes
 nbwaitall: yes
+odirectory: yes
 openat: yes
 linkat: yes
+memmem: yes
 pipe2: yes
 ppoll: yes
 revoke: no
@@ -54,3 +57,5 @@ arc4random: no
 arc4random_addrandom: no
 getrandom: yes
 itimer: yes
+namespaces: yes
+nsgetparent: no
