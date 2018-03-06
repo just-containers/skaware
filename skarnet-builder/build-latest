@@ -13,7 +13,7 @@ PROOT_VER="${PROOT_VER#v}"
 PROOT_BIN="https://github.com/just-containers/PRoot/releases/download/${PROOT_RELEASE}/proot-${PROOT_VER}-amd64.tar.xz"
 PROOT_TAR="$(basename $PROOT_BIN)"
 
-QEMU_RELEASE="v2.9.1-resin"
+QEMU_RELEASE="v2.10.2-resin"
 QEMU_VER="${QEMU_RELEASE%-resin}"
 QEMU_VER="${QEMU_VER#v}"
 QEMU_BIN="https://github.com/just-containers/qemu/releases/download/${QEMU_RELEASE}/qemu-${QEMU_VER}.tar.xz"
@@ -134,10 +134,10 @@ done
 # install proot
 mkdir -p $PACKAGEDIR/local
 dl "${PROOT_BIN}"
-# tar xf "${DOWNLOADDIR}/${PROOT_TAR}" -C ${PACKAGEDIR}/local
+tar xf "${DOWNLOADDIR}/${PROOT_TAR}" -C ${PACKAGEDIR}/local
 
 dl "${QEMU_BIN}"
-# tar xf "${DOWNLOADDIR}/${QEMU_TAR}" -C ${PACKAGEDIR}/local
+tar xf "${DOWNLOADDIR}/${QEMU_TAR}" -C ${PACKAGEDIR}/local
 
 # install make
 cd "$BUILDDIR"
