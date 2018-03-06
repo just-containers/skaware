@@ -16,7 +16,7 @@ PROOT_TAR="$(basename $PROOT_BIN)"
 QEMU_RELEASE="v2.10.2-resin"
 QEMU_VER="${QEMU_RELEASE%-resin}"
 QEMU_VER="${QEMU_VER#v}"
-QEMU_BIN="https://github.com/just-containers/qemu/releases/download/${QEMU_RELEASE}/qemu-${QEMU_VER}.tar.xz"
+QEMU_BIN="https://github.com/just-containers/qemu/releases/download/${QEMU_RELEASE}/qemu-${QEMU_VER}-amd64.tar.xz"
 QEMU_TAR="$(basename $QEMU_BIN)"
 
 BUSYBOX_CHROOT_RELEASE=v1.0.3
