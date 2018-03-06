@@ -264,27 +264,10 @@ for target in "${targets_order[@]}"; do
     tar xf "${DOWNLOADDIR}/skalibs-${versions[skalibs]}.tar.gz" -C \
       "${BUILDDIR}/chroot-${targets[$target]}/src"
 
-    # extract local gcc into chroot
-    #tar xf "$DOWNLOADDIR/gcc-${versions[gcc]}-${target}.tar.xz" -C \
-    #  "${BUILDDIR}/chroot-${targets[$target]}/usr"
-
-    # extract static x86_64 busybox over chroot's busybox
-    #tar xf "$DOWNLOADDIR/chroot-amd64.tar.gz" -C \
-    #  "${BUILDDIR}/chroot-${targets[$target]}" \
-    #  ./bin/busybox
-
-    if [[ "${target}" == "x86_64-linux-musl" ]] ; then
-        env_foreign="PROOT_FORCE_FOREIGN_BINARY=1"
-    else
-        env_foreign=""
-    fi
-
-# quick experiment with keeping everything foreign
-    env_foreign="PROOT_FORCE_FOREIGN_BINARY=1"
-
     # finally, run the configure script in the chroot
     env -i \
-    ${env_foreign} \
+    PROOT_FORCE_FOREIGN_BINARY=1 \
+    PROOT_NO_SECCOMP=1 \
     PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
     "${PROOT}" -S "${BUILDDIR}/chroot-${targets[$target]}" \
     -q "${QEMU}-${qemu_targets[$target]}-static" \
