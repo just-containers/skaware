@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
+set -eo pipefail
 
-rm -f $HOME/dist/*
-./build-latest 2>&1 | tee "$HOME/dist/build-latest-$(date +'%Y%m%d%H%M%S').log"
-exit 0
+rm -f $(pwd)/dist/*
+
+./build-latest 2>&1 | tee "$(pwd)/dist/build-latest-$(date +'%Y%m%d%H%M%S').log"
