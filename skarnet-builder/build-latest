@@ -21,6 +21,10 @@ QEMU_TAR="$(basename $QEMU_BIN)"
 BUSYBOX_CHROOT_RELEASE=v1.0.3
 BUSYBOX_CHROOT="https://github.com/just-containers/busybox-chroots/releases/download/${BUSYBOX_CHROOT_RELEASE}/"
 
+TRAVIS_TOOLS_RELEASE=1.0.0
+TRAVIS_TOOLS="https://github.com/jprjr/travis-tools/releases/download/${TRAVIS_TOOLS_RELEASE}/travis-tools-linux.tar.xz"
+TRAVIS_TOOLS_TAR="$(basename $TRAVIS_TOOLS)"
+
 DOWNLOADDIR=$THISDIR/downloads
 BUILDDIR=$THISDIR/build
 PACKAGEDIR=$THISDIR/pkg
@@ -45,6 +49,7 @@ mkdir -p "$DOWNLOADDIR" "$BUILDDIR" "$PACKAGEDIR" "$DISTDIR" "$SYSDEPSDIR"
 MAKE_4x="$PACKAGEDIR/local/bin/make"
 PROOT="$PACKAGEDIR/local/bin/proot"
 QEMU="$PACKAGEDIR/local/bin/qemu"
+RUNLOG="$PACKAGEDIR/local/bin/runlog"
 
 # all packages
 skarnet_all_packages=(
@@ -128,11 +133,15 @@ done
 
 # install proot
 mkdir -p $PACKAGEDIR/local
+
 dl "${PROOT_BIN}"
 tar xf "${DOWNLOADDIR}/${PROOT_TAR}" -C ${PACKAGEDIR}/local
 
 dl "${QEMU_BIN}"
 tar xf "${DOWNLOADDIR}/${QEMU_TAR}" -C ${PACKAGEDIR}/local
+
+dl "${TRAVIS_TOOLS}"
+tar xf "${DOWNLOADDIR}/${TRAVIS_TOOLS_TAR}" -C ${PACKAGEDIR}/local
 
 # install make
 cd "$BUILDDIR"
@@ -140,9 +149,15 @@ dl "http://ftp.gnu.org/gnu/make/make-${versions[make]}.tar.gz"
 tar xf "$DOWNLOADDIR/make-${versions[make]}.tar.gz"
 cd make-${versions[make]}
 
-./configure --prefix="$PACKAGEDIR/local"
-make
-make install
+printf "Building make-${versions[make]}\n"
+
+rm -f /tmp/make-configure.txt \
+      /tmp/make-build.txt \
+      /tmp/make-install.txt
+
+"${RUNLOG}" -l /tmp/make-configure.txt -- ./configure --prefix="$PACKAGEDIR/local" >/dev/null
+"${RUNLOG}" -l /tmp/make-build.txt -- make >/dev/null
+"${RUNLOG}" -l /tmp/make-install.txt -- make install >/dev/null
 
 for target in "${targets_order[@]}"; do
     mkdir -p "$SYSDEPSDIR/${target}"
@@ -189,6 +204,7 @@ for target in "${targets_order[@]}"; do
     build_install_skarnet_package() { # {{{
         local package=$1
         local version=${versions[$package]}
+        printf "Building ${package}-${version} for ${target}\n"
 
         mkdir -p "$BUILDDIR/${target}"
         cd "$BUILDDIR/${target}"
@@ -198,7 +214,12 @@ for target in "${targets_order[@]}"; do
 
         cd "$BUILDDIR/${target}/${package}-${versions[$package]}"
 
+        rm -f "/tmp/${package}-${target}-configure.txt" \
+              "/tmp/${package}-${target}-make.txt" \
+              "/tmp/${package}-${target}-install.txt"
+
         PATH="$PACKAGEDIR/gcc-$target/bin:$PATH" \
+        "${RUNLOG}" -l "/tmp/${package}-${target}-configure.txt" -- \
         ./configure \
           --target="$target" \
           --libdir=/usr/lib \
@@ -208,9 +229,15 @@ for target in "${targets_order[@]}"; do
           ${includes[$package]} \
           ${libs[$package]} \
           ${sysdeps[$package]} \
-          ${configopts[$package]}
-        PATH="$PACKAGEDIR/gcc-$target/bin:$PATH" ${MAKE_4x}
-        PATH="$PACKAGEDIR/gcc-$target/bin:$PATH" ${MAKE_4x} DESTDIR="$PACKAGEDIR/${package}-${target}" install
+          ${configopts[$package]} > /dev/null
+
+        PATH="$PACKAGEDIR/gcc-$target/bin:$PATH" \
+        "${RUNLOG}" -l "/tmp/${package}-${target}-make.txt" -- \
+        ${MAKE_4x} > /dev/null
+
+        PATH="$PACKAGEDIR/gcc-$target/bin:$PATH" \
+        "${RUNLOG}" -l "/tmp/${package}-${target}-install.txt" -- \
+        ${MAKE_4x} DESTDIR="$PACKAGEDIR/${package}-${target}" install >/dev/null
     } # }}}
 
     tar_skarnet_package() { # {{{
@@ -260,6 +287,9 @@ for target in "${targets_order[@]}"; do
       "${BUILDDIR}/chroot-${targets[$target]}/src"
 
     # finally, run the configure script in the chroot
+    printf "Generating sysdeps with proot+qemu\n"
+    rm -f /tmp/skalibs-${target}-sysdep.txt
+    "${RUNLOG}" -l /tmp/skalibs-${target}-sysdep.txt -- \
     env -i \
     PROOT_FORCE_FOREIGN_BINARY=1 \
     PROOT_NO_SECCOMP=1 \
@@ -268,7 +298,7 @@ for target in "${targets_order[@]}"; do
     -q "${QEMU}-${qemu_targets[$target]}-static" \
     -w "/src/skalibs-${versions[skalibs]}" \
     -b "${SYSDEPSDIR}/${target}:/src/skalibs-${versions[skalibs]}/sysdeps.cfg" \
-    ./configure
+    ./configure > /dev/null
 
     # install skarnet packages
     for package in "${skarnet_all_packages[@]}"; do
