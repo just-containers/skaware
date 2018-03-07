@@ -328,3 +328,5 @@ for i in "${!manifests[@]}"; do
   done
   echo -e ${manifest} > $DISTDIR/${manifests[${i}]}
 done
+
+printf 'Done building!\n'
