@@ -1,5 +1,8 @@
 language: c
 compiler: gcc
+sudo: required
+dist: trusty
+
 install:
 - bash -e ${TRAVIS_BUILD_DIR}/.travis.yml.install
 script:

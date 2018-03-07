@@ -1,5 +1,3 @@
 #!/bin/bash
-set -e
-set -x
 
-cd skarnet-builder && ./build-wrapper
+cd skarnet-builder && exec ./build-wrapper

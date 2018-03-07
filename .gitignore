@@ -1,1 +1,6 @@
-dist/
+/skarnet-builder/dist/
+/skarnet-builder/build/
+/skarnet-builder/downloads/
+/skarnet-builder/pkg/
+/skarnet-builder/sysdeps/
+

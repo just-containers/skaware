@@ -1,20 +1,55 @@
 #!/usr/bin/env bash
 set -e
-set -x
+
+THISDIR=$(pwd)
 
 MUSL_CROSS_MAKE_RELEASE=8
 MUSL_CROSS_MAKE_SRC="https://github.com/just-containers/musl-cross-make/releases/download/v${MUSL_CROSS_MAKE_RELEASE}"
 
-BUILDDIR=$HOME/build
-PACKAGEDIR=$HOME/pkg
-DISTDIR=$HOME/dist
-PATCHDIR="$(pwd)/patches"
-SYSDEPSDIR="$(pwd)/sysdeps"
+PROOT_RELEASE=v5.1.0-3
+PROOT_VER="${PROOT_RELEASE%-*}"
+PROOT_VER="${PROOT_VER#v}"
+PROOT_BIN="https://github.com/just-containers/PRoot/releases/download/${PROOT_RELEASE}/proot-${PROOT_VER}-amd64.tar.xz"
+PROOT_TAR="$(basename $PROOT_BIN)"
 
-mkdir -p "$BUILDDIR" "$PACKAGEDIR" "$DISTDIR"
+QEMU_RELEASE="v2.9.1-resin"
+QEMU_VER="${QEMU_RELEASE%-resin}"
+QEMU_VER="${QEMU_VER#v}"
+QEMU_BIN="https://github.com/just-containers/qemu/releases/download/${QEMU_RELEASE}/qemu-${QEMU_VER}-amd64.tar.xz"
+QEMU_TAR="$(basename $QEMU_BIN)"
+
+BUSYBOX_CHROOT_RELEASE=v1.0.3
+BUSYBOX_CHROOT="https://github.com/just-containers/busybox-chroots/releases/download/${BUSYBOX_CHROOT_RELEASE}/"
+
+TRAVIS_TOOLS_RELEASE=1.0.0
+TRAVIS_TOOLS="https://github.com/jprjr/travis-tools/releases/download/${TRAVIS_TOOLS_RELEASE}/travis-tools-linux.tar.xz"
+TRAVIS_TOOLS_TAR="$(basename $TRAVIS_TOOLS)"
+
+DOWNLOADDIR=$THISDIR/downloads
+BUILDDIR=$THISDIR/build
+PACKAGEDIR=$THISDIR/pkg
+DISTDIR=$THISDIR/dist
+PATCHDIR=$THISDIR/patches
+SYSDEPSDIR=$THISDIR/sysdeps
+
+dl() {
+  url=$1
+  dest=$2
+  if [[ -z "$dest" ]] ; then
+    dest="$DOWNLOADDIR/$(basename $url)"
+  fi
+  printf "Downloading $(basename $url)\n"
+  curl -s -R -L -o "$dest" "$url"
+}
+
+
+mkdir -p "$DOWNLOADDIR" "$BUILDDIR" "$PACKAGEDIR" "$DISTDIR" "$SYSDEPSDIR"
 
 # point to make
-MAKE_4x="$PACKAGEDIR/make/bin/make"
+MAKE_4x="$PACKAGEDIR/local/bin/make"
+PROOT="$PACKAGEDIR/local/bin/proot"
+QEMU="$PACKAGEDIR/local/bin/qemu"
+RUNLOG="$PACKAGEDIR/local/bin/runlog"
 
 # all packages
 skarnet_all_packages=(
@@ -40,14 +75,28 @@ s6-portable-utils
 s6-rc
 )
 
+targets_order=(
+'aarch64-linux-musl'
+'x86_64-linux-musl'
+'arm-linux-musleabi'
+'arm-linux-musleabihf'
+'i486-linux-musl'
+)
+
 # target platforms + simplified
-# platform
 declare -A targets
 targets[arm-linux-musleabi]=arm
 targets[arm-linux-musleabihf]=armhf
 targets[aarch64-linux-musl]=aarch64
 targets[x86_64-linux-musl]=amd64
 targets[i486-linux-musl]=x86
+
+declare -A qemu_targets
+qemu_targets[arm-linux-musleabi]=arm
+qemu_targets[arm-linux-musleabihf]=arm
+qemu_targets[aarch64-linux-musl]=aarch64
+qemu_targets[x86_64-linux-musl]=x86_64
+qemu_targets[i486-linux-musl]=i386
 
 # software versions
 declare -A versions
@@ -66,7 +115,7 @@ manifests[skarnet_all_packages]="manifest.txt"
 manifests[skarnet_linux_packages]="manifest-linux.txt"
 manifests[skarnet_portable_packages]="manifest-portable.txt"
 
-curl -R -L -o $BUILDDIR/musl-cross-make-manifest.txt "${MUSL_CROSS_MAKE_SRC}/gcc-7.2.0-manifest.txt"
+dl "${MUSL_CROSS_MAKE_SRC}/gcc-7.2.0-manifest.txt"
 
 while read -r line; do
     key=$(echo "${line}" | cut -d"=" -f1)
@@ -74,21 +123,45 @@ while read -r line; do
     case "${key}" in
         linux|musl|gcc) versions[$key]=$value ;;
     esac
-done < $BUILDDIR/musl-cross-make-manifest.txt
+done < $DOWNLOADDIR/gcc-7.2.0-manifest.txt
 
-rm $BUILDDIR/musl-cross-make-manifest.txt
+rm $DOWNLOADDIR/gcc-7.2.0-manifest.txt
+
+for package in "${skarnet_all_packages[@]}"; do
+  dl "http://skarnet.org/software/${package}/${package}-${versions[$package]}.tar.gz"
+done
+
+# install proot
+mkdir -p $PACKAGEDIR/local
+
+dl "${PROOT_BIN}"
+tar xf "${DOWNLOADDIR}/${PROOT_TAR}" -C ${PACKAGEDIR}/local
+
+dl "${QEMU_BIN}"
+tar xf "${DOWNLOADDIR}/${QEMU_TAR}" -C ${PACKAGEDIR}/local
+
+dl "${TRAVIS_TOOLS}"
+tar xf "${DOWNLOADDIR}/${TRAVIS_TOOLS_TAR}" -C ${PACKAGEDIR}/local
 
 # install make
 cd "$BUILDDIR"
-curl -R -L -O http://ftp.gnu.org/gnu/make/make-${versions[make]}.tar.gz
-tar xf make-${versions[make]}.tar.gz
+dl "http://ftp.gnu.org/gnu/make/make-${versions[make]}.tar.gz"
+tar xf "$DOWNLOADDIR/make-${versions[make]}.tar.gz"
 cd make-${versions[make]}
 
-./configure --prefix="$PACKAGEDIR/make"
-make
-make install
+printf "Building make-${versions[make]}\n"
 
-for target in "${!targets[@]}"; do
+rm -f /tmp/make-configure.txt \
+      /tmp/make-build.txt \
+      /tmp/make-install.txt
+
+"${RUNLOG}" -l /tmp/make-configure.txt -- ./configure --prefix="$PACKAGEDIR/local" >/dev/null
+"${RUNLOG}" -l /tmp/make-build.txt -- make >/dev/null
+"${RUNLOG}" -l /tmp/make-install.txt -- make install >/dev/null
+
+for target in "${targets_order[@]}"; do
+    mkdir -p "$SYSDEPSDIR/${target}"
+
     declare -A includes
     includes[skalibs]=""
     includes[execline]="--with-include=$PACKAGEDIR/skalibs-$target/usr/include ${includes[skalibs]}"
@@ -98,7 +171,7 @@ for target in "${!targets[@]}"; do
     includes[s6-dns]="${includes[s6]}"
     includes[s6-networking]="--with-include=$PACKAGEDIR/s6-dns-$target/usr/include --with-include=$PACKAGEDIR/s6-$target/usr/include ${includes[s6]}"
     includes[s6-rc]="--with-include=$PACKAGEDIR/s6-$target/usr/include ${includes[s6]}"
-    
+
     declare -A libs
     libs[skalibs]=""
     libs[execline]="--with-lib=$PACKAGEDIR/skalibs-$target/usr/lib ${libs[skalibs]}"
@@ -108,7 +181,7 @@ for target in "${!targets[@]}"; do
     libs[s6-dns]="${libs[s6]}"
     libs[s6-networking]="--with-lib=$PACKAGEDIR/s6-dns-$target/usr/lib --with-lib=$PACKAGEDIR/s6-${target}/usr/lib ${libs[s6]}"
     libs[s6-rc]="--with-lib=$PACKAGEDIR/s6-$target/usr/lib ${libs[s6]}"
-    
+
     declare -A sysdeps
     sysdeps[skalibs]="--with-sysdeps=$SYSDEPSDIR/${target}"
     sysdeps[execline]="--with-sysdeps=$PACKAGEDIR/skalibs-$target/usr/lib/skalibs/sysdeps"
@@ -118,7 +191,7 @@ for target in "${!targets[@]}"; do
     sysdeps[s6-dns]="${sysdeps[execline]}"
     sysdeps[s6-networking]="${sysdeps[execline]}"
     sysdeps[s6-rc]="${sysdeps[execline]}"
-    
+
     declare -A configopts
     configopts[skalibs]="--datadir=/etc --enable-force-devr"
     configopts[execline]=""
@@ -127,23 +200,26 @@ for target in "${!targets[@]}"; do
     configopts[s6-dns]=""
     configopts[s6-networking]=""
     configopts[s6-rc]=""
-    
-    
-    build_install_skarnet_package() {
+
+    build_install_skarnet_package() { # {{{
         local package=$1
         local version=${versions[$package]}
-    
+        printf "Building ${package}-${version} for ${target}\n"
+
         mkdir -p "$BUILDDIR/${target}"
         cd "$BUILDDIR/${target}"
-    
-        git clone https://github.com/skarnet/${package}.git
-        cd ${package}
-        if [[ ${version} =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-          version=$(git rev-list -n 1 v${version})
-        fi
-        git reset --hard ${version}
-    
+
+        tar xf "$DOWNLOADDIR/$package-${versions[$package]}.tar.gz" \
+          -C "$BUILDDIR/${target}"
+
+        cd "$BUILDDIR/${target}/${package}-${versions[$package]}"
+
+        rm -f "/tmp/${package}-${target}-configure.txt" \
+              "/tmp/${package}-${target}-make.txt" \
+              "/tmp/${package}-${target}-install.txt"
+
         PATH="$PACKAGEDIR/gcc-$target/bin:$PATH" \
+        "${RUNLOG}" -l "/tmp/${package}-${target}-configure.txt" -- \
         ./configure \
           --target="$target" \
           --libdir=/usr/lib \
@@ -153,12 +229,18 @@ for target in "${!targets[@]}"; do
           ${includes[$package]} \
           ${libs[$package]} \
           ${sysdeps[$package]} \
-          ${configopts[$package]}
-        PATH="$PACKAGEDIR/gcc-$target/bin:$PATH" ${MAKE_4x}
-        PATH="$PACKAGEDIR/gcc-$target/bin:$PATH" ${MAKE_4x} DESTDIR="$PACKAGEDIR/${package}-${target}" install
-    }
-    
-    tar_skarnet_package() {
+          ${configopts[$package]} > /dev/null
+
+        PATH="$PACKAGEDIR/gcc-$target/bin:$PATH" \
+        "${RUNLOG}" -l "/tmp/${package}-${target}-make.txt" -- \
+        ${MAKE_4x} > /dev/null
+
+        PATH="$PACKAGEDIR/gcc-$target/bin:$PATH" \
+        "${RUNLOG}" -l "/tmp/${package}-${target}-install.txt" -- \
+        ${MAKE_4x} DESTDIR="$PACKAGEDIR/${package}-${target}" install >/dev/null
+    } # }}}
+
+    tar_skarnet_package() { # {{{
         local package=$1
         for bindir in 'usr/bin' 'bin' 'usr/sbin' 'sbin'; do
             if [[ -d "$PACKAGEDIR/${package}-${target}/$bindir" ]]; then
@@ -186,12 +268,38 @@ for target in "${!targets[@]}"; do
               --group 0 \
             -C "$PACKAGEDIR/${package}-${target}" $dev_dirs
         fi
-    }
+    } # }}}
+
     # get gcc
     mkdir -p "$PACKAGEDIR/gcc-${target}"
-    curl -R -L -o "$PACKAGEDIR/gcc-${target}.tar.xz" "${MUSL_CROSS_MAKE_SRC}/gcc-${versions[gcc]}-${target}.tar.xz"
-    tar xf "$PACKAGEDIR/gcc-${target}.tar.xz" -C "$PACKAGEDIR/gcc-${target}"
-    
+    dl "${MUSL_CROSS_MAKE_SRC}/gcc-${versions[gcc]}-${target}.tar.xz"
+    tar xf "$DOWNLOADDIR/gcc-${versions[gcc]}-${target}.tar.xz" -C "$PACKAGEDIR/gcc-${target}"
+
+    # get chroot
+    mkdir -p "$BUILDDIR/chroot-${targets[$target]}"
+    dl "${BUSYBOX_CHROOT}/chroot-${targets[$target]}.tar.gz"
+    tar xf "${DOWNLOADDIR}/chroot-${targets[$target]}.tar.gz" -C \
+      "${BUILDDIR}/chroot-${targets[$target]}"
+
+    # extract skalibs source into chroot
+    mkdir -p "${BUILDDIR}/chroot-${targets[$target]}/src"
+    tar xf "${DOWNLOADDIR}/skalibs-${versions[skalibs]}.tar.gz" -C \
+      "${BUILDDIR}/chroot-${targets[$target]}/src"
+
+    # finally, run the configure script in the chroot
+    printf "Generating sysdeps with proot+qemu\n"
+    rm -f /tmp/skalibs-${target}-sysdep.txt
+    "${RUNLOG}" -l /tmp/skalibs-${target}-sysdep.txt -- \
+    env -i \
+    PROOT_FORCE_FOREIGN_BINARY=1 \
+    PROOT_NO_SECCOMP=1 \
+    PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
+    "${PROOT}" -S "${BUILDDIR}/chroot-${targets[$target]}" \
+    -q "${QEMU}-${qemu_targets[$target]}-static" \
+    -w "/src/skalibs-${versions[skalibs]}" \
+    -b "${SYSDEPSDIR}/${target}:/src/skalibs-${versions[skalibs]}/sysdeps.cfg" \
+    ./configure > /dev/null
+
     # install skarnet packages
     for package in "${skarnet_all_packages[@]}"; do
         build_install_skarnet_package ${package}
@@ -220,3 +328,5 @@ for i in "${!manifests[@]}"; do
   done
   echo -e ${manifest} > $DISTDIR/${manifests[${i}]}
 done
+
+printf 'Done building!\n'

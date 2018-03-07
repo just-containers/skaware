@@ -8,6 +8,8 @@ if [ -z "${TRAVIS_TAG}" ]; then
   exit 0
 fi
 
+DISTDIR=$(pwd)/skarnet-builder/dist
+
 # get user and repo names
 USERNAME=$(echo ${TRAVIS_REPO_SLUG} | cut -d"/" -f1)
 REPONAME=$(echo ${TRAVIS_REPO_SLUG} | cut -d"/" -f2)
@@ -21,7 +23,7 @@ REPONAME=$(echo ${TRAVIS_REPO_SLUG} | cut -d"/" -f2)
   --description "$(cat $HOME/dist/release.md)"
 
 # manifests
-for i in $HOME/dist/manifest*.txt; do
+for i in ${DISTDIR}/manifest*.txt; do
   name=$(basename ${i})
   ./github-release upload \
     --user "${USERNAME}" \
@@ -32,7 +34,7 @@ for i in $HOME/dist/manifest*.txt; do
 done
 
 # skaware binaries
-for i in $HOME/dist/*.tar.gz; do
+for i in ${DISTDIR}/*.tar.gz; do
   name=$(basename ${i})
   ./github-release upload \
     --user "${USERNAME}" \
