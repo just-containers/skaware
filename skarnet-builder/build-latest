@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 set -e
-set -x
 
 THISDIR=$(pwd)
 
@@ -13,7 +12,7 @@ PROOT_VER="${PROOT_VER#v}"
 PROOT_BIN="https://github.com/just-containers/PRoot/releases/download/${PROOT_RELEASE}/proot-${PROOT_VER}-amd64.tar.xz"
 PROOT_TAR="$(basename $PROOT_BIN)"
 
-QEMU_RELEASE="v2.10.2-resin"
+QEMU_RELEASE="v2.9.1-resin"
 QEMU_VER="${QEMU_RELEASE%-resin}"
 QEMU_VER="${QEMU_VER#v}"
 QEMU_BIN="https://github.com/just-containers/qemu/releases/download/${QEMU_RELEASE}/qemu-${QEMU_VER}-amd64.tar.xz"
@@ -71,15 +70,11 @@ s6-portable-utils
 s6-rc
 )
 
-# we want to produce x86_64 first
-# we can grab busybox from the
-# x86_64 chroot to really speed
-# up the skalibs sysdeps-gen step
 targets_order=(
+'aarch64-linux-musl'
 'x86_64-linux-musl'
 'arm-linux-musleabi'
 'arm-linux-musleabihf'
-'aarch64-linux-musl'
 'i486-linux-musl'
 )
 
