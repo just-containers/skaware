@@ -76,11 +76,11 @@ s6-rc
 )
 
 targets_order=(
-'aarch64-linux-musl'
+'i486-linux-musl'
 'x86_64-linux-musl'
+'aarch64-linux-musl'
 'arm-linux-musleabi'
 'arm-linux-musleabihf'
-'i486-linux-musl'
 )
 
 # target platforms + simplified
@@ -286,19 +286,44 @@ for target in "${targets_order[@]}"; do
     tar xf "${DOWNLOADDIR}/skalibs-${versions[skalibs]}.tar.gz" -C \
       "${BUILDDIR}/chroot-${targets[$target]}/src"
 
-    # finally, run the configure script in the chroot
-    printf "Generating sysdeps with proot+qemu\n"
-    rm -f /tmp/skalibs-${target}-sysdep.txt
-    "${RUNLOG}" -l /tmp/skalibs-${target}-sysdep.txt -- \
-    env -i \
-    PROOT_FORCE_FOREIGN_BINARY=1 \
-    PROOT_NO_SECCOMP=1 \
-    PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
-    "${PROOT}" -S "${BUILDDIR}/chroot-${targets[$target]}" \
-    -q "${QEMU}-${qemu_targets[$target]}-static" \
-    -w "/src/skalibs-${versions[skalibs]}" \
-    -b "${SYSDEPSDIR}/${target}:/src/skalibs-${versions[skalibs]}/sysdeps.cfg" \
-    ./configure > /dev/null
+    if [ "${target}" = "x86_64-linux-musl" ] ; then
+      printf "Generating sysdeps with proot\n"
+      rm -f /tmp/skalibs-${target}-sysdep.txt
+      "${RUNLOG}" -l /tmp/skalibs-${target}-sysdep.txt -- \
+      env -i \
+      PROOT_FORCE_FOREIGN_BINARY=1 \
+      PROOT_NO_SECCOMP=1 \
+      PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
+      "${PROOT}" -S "${BUILDDIR}/chroot-${targets[$target]}" \
+      -w "/src/skalibs-${versions[skalibs]}" \
+      -b "${SYSDEPSDIR}/${target}:/src/skalibs-${versions[skalibs]}/sysdeps.cfg" \
+      ./configure > /dev/null
+    elif [ "${target}" = "i486-linux-musl" ] ; then
+      printf "Generating sysdeps with proot+linux32\n"
+      rm -f /tmp/skalibs-${target}-sysdep.txt
+      "${RUNLOG}" -l /tmp/skalibs-${target}-sysdep.txt -- \
+      env -i \
+      PROOT_FORCE_FOREIGN_BINARY=1 \
+      PROOT_NO_SECCOMP=1 \
+      PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
+      "${PROOT}" -S "${BUILDDIR}/chroot-${targets[$target]}" \
+      -w "/src/skalibs-${versions[skalibs]}" \
+      -b "${SYSDEPSDIR}/${target}:/src/skalibs-${versions[skalibs]}/sysdeps.cfg" \
+      linux32 ./configure > /dev/null
+    else
+      printf "Generating sysdeps with proot+qemu\n"
+      rm -f /tmp/skalibs-${target}-sysdep.txt
+      "${RUNLOG}" -l /tmp/skalibs-${target}-sysdep.txt -- \
+      env -i \
+      PROOT_FORCE_FOREIGN_BINARY=1 \
+      PROOT_NO_SECCOMP=1 \
+      PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
+      "${PROOT}" -S "${BUILDDIR}/chroot-${targets[$target]}" \
+      -q "${QEMU}-${qemu_targets[$target]}-static" \
+      -w "/src/skalibs-${versions[skalibs]}" \
+      -b "${SYSDEPSDIR}/${target}:/src/skalibs-${versions[skalibs]}/sysdeps.cfg" \
+      ./configure > /dev/null
+    fi
 
     # install skarnet packages
     for package in "${skarnet_all_packages[@]}"; do
