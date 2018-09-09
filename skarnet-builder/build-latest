@@ -3,7 +3,7 @@ set -e
 
 THISDIR=$(pwd)
 
-MUSL_CROSS_MAKE_RELEASE=10
+MUSL_CROSS_MAKE_RELEASE=11
 MUSL_CROSS_MAKE_SRC="https://github.com/just-containers/musl-cross-make/releases/download/v${MUSL_CROSS_MAKE_RELEASE}"
 
 PROOT_RELEASE=v5.1.0-3
@@ -18,7 +18,7 @@ QEMU_VER="${QEMU_VER#v}"
 QEMU_BIN="https://github.com/just-containers/qemu/releases/download/${QEMU_RELEASE}/qemu-${QEMU_VER}-amd64.tar.xz"
 QEMU_TAR="$(basename $QEMU_BIN)"
 
-BUSYBOX_CHROOT_RELEASE=v1.0.4
+BUSYBOX_CHROOT_RELEASE=v1.0.5
 BUSYBOX_CHROOT="https://github.com/just-containers/busybox-chroots/releases/download/${BUSYBOX_CHROOT_RELEASE}/"
 
 TRAVIS_TOOLS_RELEASE=1.0.0
