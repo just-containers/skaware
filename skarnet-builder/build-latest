@@ -3,7 +3,7 @@ set -e
 
 THISDIR=$(pwd)
 
-MUSL_CROSS_MAKE_RELEASE=8
+MUSL_CROSS_MAKE_RELEASE=10
 MUSL_CROSS_MAKE_SRC="https://github.com/just-containers/musl-cross-make/releases/download/v${MUSL_CROSS_MAKE_RELEASE}"
 
 PROOT_RELEASE=v5.1.0-3
@@ -115,7 +115,7 @@ manifests[skarnet_all_packages]="manifest.txt"
 manifests[skarnet_linux_packages]="manifest-linux.txt"
 manifests[skarnet_portable_packages]="manifest-portable.txt"
 
-dl "${MUSL_CROSS_MAKE_SRC}/gcc-7.2.0-manifest.txt"
+dl "${MUSL_CROSS_MAKE_SRC}/gcc-7.3.0-manifest.txt"
 
 while read -r line; do
     key=$(echo "${line}" | cut -d"=" -f1)
@@ -123,9 +123,9 @@ while read -r line; do
     case "${key}" in
         linux|musl|gcc) versions[$key]=$value ;;
     esac
-done < $DOWNLOADDIR/gcc-7.2.0-manifest.txt
+done < $DOWNLOADDIR/gcc-7.3.0-manifest.txt
 
-rm $DOWNLOADDIR/gcc-7.2.0-manifest.txt
+rm $DOWNLOADDIR/gcc-7.3.0-manifest.txt
 
 for package in "${skarnet_all_packages[@]}"; do
   dl "http://skarnet.org/software/${package}/${package}-${versions[$package]}.tar.gz"
