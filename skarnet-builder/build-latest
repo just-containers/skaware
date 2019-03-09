@@ -101,14 +101,14 @@ qemu_targets[i486-linux-musl]=i386
 # software versions
 declare -A versions
 versions[make]=4.1
-versions[skalibs]=2.7.0.0
-versions[execline]=2.5.0.1
-versions[s6]=2.7.2.2
-versions[s6-portable-utils]=2.2.1.2
-versions[s6-linux-utils]=2.5.0.0
-versions[s6-dns]=2.3.0.1
-versions[s6-networking]=2.3.0.3
-versions[s6-rc]=0.4.1.0
+versions[skalibs]=2.8.0.1
+versions[execline]=2.5.1.0
+versions[s6]=2.8.0.0
+versions[s6-portable-utils]=2.2.1.3
+versions[s6-linux-utils]=2.5.0.1
+versions[s6-dns]=2.3.0.2
+versions[s6-networking]=2.3.0.4
+versions[s6-rc]=0.5.0.0
 
 declare -A manifests
 manifests[skarnet_all_packages]="manifest.txt"
