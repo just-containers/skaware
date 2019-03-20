@@ -3,7 +3,7 @@ set -e
 
 THISDIR=$(pwd)
 
-MUSL_CROSS_MAKE_RELEASE=12
+MUSL_CROSS_MAKE_RELEASE=13
 MUSL_CROSS_MAKE_SRC="https://github.com/just-containers/musl-cross-make/releases/download/v${MUSL_CROSS_MAKE_RELEASE}"
 
 PROOT_RELEASE=v5.1.0-3
@@ -18,7 +18,7 @@ QEMU_VER="${QEMU_VER#v}"
 QEMU_BIN="https://github.com/just-containers/qemu/releases/download/${QEMU_RELEASE}/qemu-${QEMU_VER}-amd64.tar.xz"
 QEMU_TAR="$(basename $QEMU_BIN)"
 
-BUSYBOX_CHROOT_RELEASE=v1.0.6
+BUSYBOX_CHROOT_RELEASE=v1.0.7
 BUSYBOX_CHROOT="https://github.com/just-containers/busybox-chroots/releases/download/${BUSYBOX_CHROOT_RELEASE}/"
 
 TRAVIS_TOOLS_RELEASE=1.0.0
@@ -81,6 +81,7 @@ targets_order=(
 'aarch64-linux-musl'
 'arm-linux-musleabi'
 'arm-linux-musleabihf'
+'powerpc64le-linux-musl'
 )
 
 # target platforms + simplified
@@ -90,6 +91,7 @@ targets[arm-linux-musleabihf]=armhf
 targets[aarch64-linux-musl]=aarch64
 targets[x86_64-linux-musl]=amd64
 targets[i486-linux-musl]=x86
+targets[powerpc64le-linux-musl]=ppc64le
 
 declare -A qemu_targets
 qemu_targets[arm-linux-musleabi]=arm
@@ -97,6 +99,7 @@ qemu_targets[arm-linux-musleabihf]=arm
 qemu_targets[aarch64-linux-musl]=aarch64
 qemu_targets[x86_64-linux-musl]=x86_64
 qemu_targets[i486-linux-musl]=i386
+qemu_targets[powerpc64le-linux-musl]=ppc64le
 
 # software versions
 declare -A versions
