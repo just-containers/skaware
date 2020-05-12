@@ -189,6 +189,9 @@ for target in "${targets_order[@]}"; do
               "/tmp/${package}-${target}-make.txt" \
               "/tmp/${package}-${target}-install.txt"
 
+        export CC="${target}-gcc"
+        export AR="${target}-ar"
+
         PATH="$PACKAGEDIR/gcc-$target/bin:$PATH" \
         "${RUNLOG}" -l "/tmp/${package}-${target}-configure.txt" -- \
         ./configure \
