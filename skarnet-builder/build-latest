@@ -111,6 +111,9 @@ done
 
 mkdir -p $PACKAGEDIR/local
 
+dl "${TRAVIS_TOOLS}"
+tar xf "${DOWNLOADDIR}/${TRAVIS_TOOLS_TAR}" -C ${PACKAGEDIR}/local
+
 # install make
 cd "$BUILDDIR"
 dl "http://ftp.gnu.org/gnu/make/make-${versions[make]}.tar.gz"
