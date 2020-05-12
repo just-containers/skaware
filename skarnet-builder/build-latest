@@ -207,7 +207,7 @@ for target in "${targets_order[@]}"; do
 
         PATH="$PACKAGEDIR/gcc-$target/bin:$PATH" \
         "${RUNLOG}" -l "/tmp/${package}-${target}-make.txt" -- \
-        ${MAKE_4x} > /dev/null
+        ${MAKE_4x} -j > /dev/null
 
         PATH="$PACKAGEDIR/gcc-$target/bin:$PATH" \
         "${RUNLOG}" -l "/tmp/${package}-${target}-install.txt" -- \
