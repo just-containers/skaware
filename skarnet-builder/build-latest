@@ -18,7 +18,7 @@ QEMU_VER="${QEMU_VER#v}"
 QEMU_BIN="https://github.com/just-containers/qemu/releases/download/${QEMU_RELEASE}/qemu-${QEMU_VER}-amd64.tar.xz"
 QEMU_TAR="$(basename $QEMU_BIN)"
 
-BUSYBOX_CHROOT_RELEASE=v1.0.9
+BUSYBOX_CHROOT_RELEASE=v1.0.10
 BUSYBOX_CHROOT="https://github.com/just-containers/busybox-chroots/releases/download/${BUSYBOX_CHROOT_RELEASE}/"
 
 TRAVIS_TOOLS_RELEASE=1.0.0
