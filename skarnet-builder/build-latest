@@ -200,15 +200,15 @@ for target in "${targets_order[@]}"; do
           ${includes[$package]} \
           ${libs[$package]} \
           ${sysdeps[$package]} \
-          ${configopts[$package]} > /dev/null
+          ${configopts[$package]} > /dev/null || cat "/tmp/${package}-${target}-configure.txt" && exit 1
 
         PATH="$PACKAGEDIR/gcc-$target/bin:$PATH" \
         "${RUNLOG}" -l "/tmp/${package}-${target}-make.txt" -- \
-        ${MAKE_4x} > /dev/null
+        ${MAKE_4x} > /dev/null || cat "/tmp/${package}-${target}-make.txt" && exit 1
 
         PATH="$PACKAGEDIR/gcc-$target/bin:$PATH" \
         "${RUNLOG}" -l "/tmp/${package}-${target}-install.txt" -- \
-        ${MAKE_4x} DESTDIR="$PACKAGEDIR/${package}-${target}" install >/dev/null
+        ${MAKE_4x} DESTDIR="$PACKAGEDIR/${package}-${target}" install >/dev/null || cat "/tmp/${package}-${target}-install.txt" && exit 1
     } # }}}
 
     tar_skarnet_package() { # {{{
