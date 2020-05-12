@@ -6,21 +6,6 @@ THISDIR=$(pwd)
 MUSL_CROSS_MAKE_RELEASE=15
 MUSL_CROSS_MAKE_SRC="https://github.com/just-containers/musl-cross-make/releases/download/v${MUSL_CROSS_MAKE_RELEASE}"
 
-PROOT_RELEASE=v5.1.0-3
-PROOT_VER="${PROOT_RELEASE%-*}"
-PROOT_VER="${PROOT_VER#v}"
-PROOT_BIN="https://github.com/just-containers/PRoot/releases/download/${PROOT_RELEASE}/proot-${PROOT_VER}-amd64.tar.xz"
-PROOT_TAR="$(basename $PROOT_BIN)"
-
-QEMU_RELEASE="v2.9.1-resin"
-QEMU_VER="${QEMU_RELEASE%-resin}"
-QEMU_VER="${QEMU_VER#v}"
-QEMU_BIN="https://github.com/just-containers/qemu/releases/download/${QEMU_RELEASE}/qemu-${QEMU_VER}-amd64.tar.xz"
-QEMU_TAR="$(basename $QEMU_BIN)"
-
-BUSYBOX_CHROOT_RELEASE=v1.0.10
-BUSYBOX_CHROOT="https://github.com/just-containers/busybox-chroots/releases/download/${BUSYBOX_CHROOT_RELEASE}/"
-
 TRAVIS_TOOLS_RELEASE=1.0.0
 TRAVIS_TOOLS="https://github.com/jprjr/travis-tools/releases/download/${TRAVIS_TOOLS_RELEASE}/travis-tools-linux.tar.xz"
 TRAVIS_TOOLS_TAR="$(basename $TRAVIS_TOOLS)"
@@ -47,8 +32,6 @@ mkdir -p "$DOWNLOADDIR" "$BUILDDIR" "$PACKAGEDIR" "$DISTDIR" "$SYSDEPSDIR"
 
 # point to make
 MAKE_4x="$PACKAGEDIR/local/bin/make"
-PROOT="$PACKAGEDIR/local/bin/proot"
-QEMU="$PACKAGEDIR/local/bin/qemu"
 RUNLOG="$PACKAGEDIR/local/bin/runlog"
 
 # all packages
@@ -93,14 +76,6 @@ targets[x86_64-linux-musl]=amd64
 targets[i486-linux-musl]=x86
 targets[powerpc64le-linux-musl]=ppc64le
 
-declare -A qemu_targets
-qemu_targets[arm-linux-musleabi]=arm
-qemu_targets[arm-linux-musleabihf]=arm
-qemu_targets[aarch64-linux-musl]=aarch64
-qemu_targets[x86_64-linux-musl]=x86_64
-qemu_targets[i486-linux-musl]=i386
-qemu_targets[powerpc64le-linux-musl]=ppc64le
-
 # software versions
 declare -A versions
 versions[make]=4.1
@@ -134,17 +109,7 @@ for package in "${skarnet_all_packages[@]}"; do
   dl "http://skarnet.org/software/${package}/${package}-${versions[$package]}.tar.gz"
 done
 
-# install proot
 mkdir -p $PACKAGEDIR/local
-
-dl "${PROOT_BIN}"
-tar xf "${DOWNLOADDIR}/${PROOT_TAR}" -C ${PACKAGEDIR}/local
-
-dl "${QEMU_BIN}"
-tar xf "${DOWNLOADDIR}/${QEMU_TAR}" -C ${PACKAGEDIR}/local
-
-dl "${TRAVIS_TOOLS}"
-tar xf "${DOWNLOADDIR}/${TRAVIS_TOOLS_TAR}" -C ${PACKAGEDIR}/local
 
 # install make
 cd "$BUILDDIR"
@@ -186,7 +151,7 @@ for target in "${targets_order[@]}"; do
     libs[s6-rc]="--with-lib=$PACKAGEDIR/s6-$target/usr/lib ${libs[s6]}"
 
     declare -A sysdeps
-    sysdeps[skalibs]="--with-sysdeps=$SYSDEPSDIR/${target}"
+    sysdeps[skalibs]=""
     sysdeps[execline]="--with-sysdeps=$PACKAGEDIR/skalibs-$target/usr/lib/skalibs/sysdeps"
     sysdeps[s6]="${sysdeps[execline]}"
     sysdeps[s6-portable-utils]="${sysdeps[execline]}"
@@ -196,7 +161,7 @@ for target in "${targets_order[@]}"; do
     sysdeps[s6-rc]="${sysdeps[execline]}"
 
     declare -A configopts
-    configopts[skalibs]="--datadir=/etc --enable-force-devr"
+    configopts[skalibs]="--datadir=/etc --with-sysdep-devurandom=yes"
     configopts[execline]=""
     configopts[s6]=""
     configopts[s6-portable-utils]=""
@@ -277,56 +242,6 @@ for target in "${targets_order[@]}"; do
     mkdir -p "$PACKAGEDIR/gcc-${target}"
     dl "${MUSL_CROSS_MAKE_SRC}/gcc-${versions[gcc]}-${target}.tar.xz"
     tar xf "$DOWNLOADDIR/gcc-${versions[gcc]}-${target}.tar.xz" -C "$PACKAGEDIR/gcc-${target}"
-
-    # get chroot
-    mkdir -p "$BUILDDIR/chroot-${targets[$target]}"
-    dl "${BUSYBOX_CHROOT}/chroot-${targets[$target]}.tar.gz"
-    tar xf "${DOWNLOADDIR}/chroot-${targets[$target]}.tar.gz" -C \
-      "${BUILDDIR}/chroot-${targets[$target]}"
-
-    # extract skalibs source into chroot
-    mkdir -p "${BUILDDIR}/chroot-${targets[$target]}/src"
-    tar xf "${DOWNLOADDIR}/skalibs-${versions[skalibs]}.tar.gz" -C \
-      "${BUILDDIR}/chroot-${targets[$target]}/src"
-
-    if [ "${target}" = "x86_64-linux-musl" ] ; then
-      printf "Generating sysdeps with proot\n"
-      rm -f /tmp/skalibs-${target}-sysdep.txt
-      "${RUNLOG}" -l /tmp/skalibs-${target}-sysdep.txt -- \
-      env -i \
-      PROOT_FORCE_FOREIGN_BINARY=1 \
-      PROOT_NO_SECCOMP=1 \
-      PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
-      "${PROOT}" -S "${BUILDDIR}/chroot-${targets[$target]}" \
-      -w "/src/skalibs-${versions[skalibs]}" \
-      -b "${SYSDEPSDIR}/${target}:/src/skalibs-${versions[skalibs]}/sysdeps.cfg" \
-      ./configure > /dev/null
-    elif [ "${target}" = "i486-linux-musl" ] ; then
-      printf "Generating sysdeps with proot+linux32\n"
-      rm -f /tmp/skalibs-${target}-sysdep.txt
-      "${RUNLOG}" -l /tmp/skalibs-${target}-sysdep.txt -- \
-      env -i \
-      PROOT_FORCE_FOREIGN_BINARY=1 \
-      PROOT_NO_SECCOMP=1 \
-      PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
-      "${PROOT}" -S "${BUILDDIR}/chroot-${targets[$target]}" \
-      -w "/src/skalibs-${versions[skalibs]}" \
-      -b "${SYSDEPSDIR}/${target}:/src/skalibs-${versions[skalibs]}/sysdeps.cfg" \
-      linux32 ./configure > /dev/null
-    else
-      printf "Generating sysdeps with proot+qemu\n"
-      rm -f /tmp/skalibs-${target}-sysdep.txt
-      "${RUNLOG}" -l /tmp/skalibs-${target}-sysdep.txt -- \
-      env -i \
-      PROOT_FORCE_FOREIGN_BINARY=1 \
-      PROOT_NO_SECCOMP=1 \
-      PATH="/usr/bin:/bin:/usr/sbin:/sbin" \
-      "${PROOT}" -S "${BUILDDIR}/chroot-${targets[$target]}" \
-      -q "${QEMU}-${qemu_targets[$target]}-static" \
-      -w "/src/skalibs-${versions[skalibs]}" \
-      -b "${SYSDEPSDIR}/${target}:/src/skalibs-${versions[skalibs]}/sysdeps.cfg" \
-      ./configure > /dev/null
-    fi
 
     # install skarnet packages
     for package in "${skarnet_all_packages[@]}"; do
