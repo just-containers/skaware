@@ -79,14 +79,14 @@ targets[powerpc64le-linux-musl]=ppc64le
 # software versions
 declare -A versions
 versions[make]=4.1
-versions[skalibs]=2.9.3.0
-versions[execline]=2.6.1.1
-versions[s6]=2.9.2.0
-versions[s6-portable-utils]=2.2.3.0
-versions[s6-linux-utils]=2.5.1.3
-versions[s6-dns]=2.3.3.0
-versions[s6-networking]=2.3.2.0
-versions[s6-rc]=0.5.2.0
+versions[skalibs]=2.10.0.0
+versions[execline]=2.7.0.0
+versions[s6]=2.10.0.0
+versions[s6-portable-utils]=2.2.3.1
+versions[s6-linux-utils]=2.5.1.4
+versions[s6-dns]=2.3.4.0
+versions[s6-networking]=2.4.0.0
+versions[s6-rc]=0.5.2.1
 
 declare -A manifests
 manifests[skarnet_all_packages]="manifest.txt"
