@@ -126,9 +126,9 @@ rm -f /tmp/make-configure.txt \
       /tmp/make-build.txt \
       /tmp/make-install.txt
 
-"${RUNLOG}" -l /tmp/make-configure.txt -- ./configure --prefix="$PACKAGEDIR/local" >/dev/null
-"${RUNLOG}" -l /tmp/make-build.txt -- make >/dev/null
-"${RUNLOG}" -l /tmp/make-install.txt -- make install >/dev/null
+./configure --prefix="$PACKAGEDIR/local"
+make
+make install
 
 for target in "${targets_order[@]}"; do
     mkdir -p "$SYSDEPSDIR/${target}"
