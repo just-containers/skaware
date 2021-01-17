@@ -30,8 +30,6 @@ dl() {
 
 mkdir -p "$DOWNLOADDIR" "$BUILDDIR" "$PACKAGEDIR" "$DISTDIR" "$SYSDEPSDIR"
 
-# point to make
-MAKE_4x="$PACKAGEDIR/local/bin/make"
 RUNLOG="$PACKAGEDIR/local/bin/runlog"
 
 # all packages
@@ -78,7 +76,6 @@ targets[powerpc64le-linux-musl]=ppc64le
 
 # software versions
 declare -A versions
-versions[make]=4.1
 versions[skalibs]=2.10.0.0
 versions[execline]=2.7.0.0
 versions[s6]=2.10.0.0
@@ -113,22 +110,6 @@ mkdir -p $PACKAGEDIR/local
 
 dl "${TRAVIS_TOOLS}"
 tar xf "${DOWNLOADDIR}/${TRAVIS_TOOLS_TAR}" -C ${PACKAGEDIR}/local
-
-# install make
-cd "$BUILDDIR"
-dl "http://ftp.gnu.org/gnu/make/make-${versions[make]}.tar.gz"
-tar xf "$DOWNLOADDIR/make-${versions[make]}.tar.gz"
-cd make-${versions[make]}
-
-printf "Building make-${versions[make]}\n"
-
-rm -f /tmp/make-configure.txt \
-      /tmp/make-build.txt \
-      /tmp/make-install.txt
-
-./configure --prefix="$PACKAGEDIR/local"
-make
-make install
 
 for target in "${targets_order[@]}"; do
     mkdir -p "$SYSDEPSDIR/${target}"
@@ -207,11 +188,11 @@ for target in "${targets_order[@]}"; do
 
         PATH="$PACKAGEDIR/gcc-$target/bin:$PATH" \
         "${RUNLOG}" -l "/tmp/${package}-${target}-make.txt" -- \
-        ${MAKE_4x} -j > /dev/null
+        make -j > /dev/null
 
         PATH="$PACKAGEDIR/gcc-$target/bin:$PATH" \
         "${RUNLOG}" -l "/tmp/${package}-${target}-install.txt" -- \
-        ${MAKE_4x} DESTDIR="$PACKAGEDIR/${package}-${target}" install >/dev/null
+        make DESTDIR="$PACKAGEDIR/${package}-${target}" install >/dev/null
     } # }}}
 
     tar_skarnet_package() { # {{{
