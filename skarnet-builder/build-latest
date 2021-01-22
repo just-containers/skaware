@@ -42,6 +42,7 @@ s6-linux-utils
 s6-dns
 s6-networking
 s6-rc
+s6-linux-init
 )
 
 # linux packages
