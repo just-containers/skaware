@@ -76,14 +76,15 @@ targets[powerpc64le-linux-musl]=ppc64le
 
 # software versions
 declare -A versions
-versions[skalibs]=2.10.0.0
+versions[skalibs]=2.10.0.1
 versions[execline]=2.7.0.0
 versions[s6]=2.10.0.0
 versions[s6-portable-utils]=2.2.3.1
 versions[s6-linux-utils]=2.5.1.4
-versions[s6-dns]=2.3.4.0
+versions[s6-dns]=2.3.5.0
 versions[s6-networking]=2.4.0.0
 versions[s6-rc]=0.5.2.1
+versions[s6-linux-init]=1.0.6.0
 
 declare -A manifests
 manifests[skarnet_all_packages]="manifest.txt"
@@ -123,6 +124,7 @@ for target in "${targets_order[@]}"; do
     includes[s6-dns]="${includes[s6]}"
     includes[s6-networking]="--with-include=$PACKAGEDIR/s6-dns-$target/usr/include --with-include=$PACKAGEDIR/s6-$target/usr/include ${includes[s6]}"
     includes[s6-rc]="--with-include=$PACKAGEDIR/s6-$target/usr/include ${includes[s6]}"
+    includes[s6-linux-init]="--with-include=$PACKAGEDIR/s6-$target/usr/include ${includes[s6]}"
 
     declare -A libs
     libs[skalibs]=""
@@ -133,6 +135,7 @@ for target in "${targets_order[@]}"; do
     libs[s6-dns]="${libs[s6]}"
     libs[s6-networking]="--with-lib=$PACKAGEDIR/s6-dns-$target/usr/lib --with-lib=$PACKAGEDIR/s6-${target}/usr/lib ${libs[s6]}"
     libs[s6-rc]="--with-lib=$PACKAGEDIR/s6-$target/usr/lib ${libs[s6]}"
+    libs[s6-linux-init]="--with-lib=$PACKAGEDIR/s6-$target/usr/lib ${libs[s6]}"
 
     declare -A sysdeps
     sysdeps[skalibs]=""
@@ -143,6 +146,7 @@ for target in "${targets_order[@]}"; do
     sysdeps[s6-dns]="${sysdeps[execline]}"
     sysdeps[s6-networking]="${sysdeps[execline]}"
     sysdeps[s6-rc]="${sysdeps[execline]}"
+    sysdeps[s6-linux-rc]="${sysdeps[execline]}"
 
     declare -A configopts
     configopts[skalibs]="--datadir=/etc --with-sysdep-devurandom=yes"
@@ -152,6 +156,7 @@ for target in "${targets_order[@]}"; do
     configopts[s6-dns]=""
     configopts[s6-networking]=""
     configopts[s6-rc]=""
+    configopts[s6-linux-rc]=""
 
     build_install_skarnet_package() { # {{{
         local package=$1
@@ -239,7 +244,7 @@ done
 
 # generate release.md
 releasemsg=""
-releasemsg+="Built using \`make-${versions[make]}\`, \`musl-${versions[musl]}\` and \`linux-headers-${versions[linux]}\`\n"
+releasemsg+="Built using \`musl-${versions[musl]}\` and \`linux-headers-${versions[linux]}\`\n"
 releasemsg+="\n"
 releasemsg+="| Software | Version |\n"
 releasemsg+="| -------- |:-------:|\n"
