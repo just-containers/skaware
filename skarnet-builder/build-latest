@@ -147,7 +147,7 @@ for target in "${targets_order[@]}"; do
     sysdeps[s6-dns]="${sysdeps[execline]}"
     sysdeps[s6-networking]="${sysdeps[execline]}"
     sysdeps[s6-rc]="${sysdeps[execline]}"
-    sysdeps[s6-linux-rc]="${sysdeps[execline]}"
+    sysdeps[s6-linux-init]="${sysdeps[execline]}"
 
     declare -A configopts
     configopts[skalibs]="--datadir=/etc --with-sysdep-devurandom=yes"
@@ -157,7 +157,7 @@ for target in "${targets_order[@]}"; do
     configopts[s6-dns]=""
     configopts[s6-networking]=""
     configopts[s6-rc]=""
-    configopts[s6-linux-rc]=""
+    configopts[s6-linux-init]=""
 
     build_install_skarnet_package() { # {{{
         local package=$1
