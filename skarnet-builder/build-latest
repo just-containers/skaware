@@ -64,6 +64,7 @@ targets_order=(
 'arm-linux-musleabi'
 'arm-linux-musleabihf'
 'powerpc64le-linux-musl'
+'riscv64-linux-musl'
 )
 
 # target platforms + simplified
@@ -74,6 +75,7 @@ targets[aarch64-linux-musl]=aarch64
 targets[x86_64-linux-musl]=amd64
 targets[i486-linux-musl]=x86
 targets[powerpc64le-linux-musl]=ppc64le
+targets[riscv64-linux-musl]=riscv64
 
 # software versions
 declare -A versions
